@@ -8,6 +8,7 @@ import {
   Button
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth-context';
 import { 
   getTeacherById, 
@@ -40,9 +41,9 @@ const TeacherDashboard: React.FC = () => {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Welcome, {user?.name}</h1>
+        <h1 className="text-2xl font-bold mb-2">Добро пожаловать, {user?.name}</h1>
         <p className="text-default-500">
-          Here's your teaching overview for today, {getDayName(currentDayNumber)}
+          Обзор вашего расписания занятий на сегодня, {getDayName(currentDayNumber)}
         </p>
       </div>
 
@@ -51,7 +52,7 @@ const TeacherDashboard: React.FC = () => {
         <div className="lg:col-span-2">
           <Card className="border border-divider">
             <CardHeader className="flex justify-between">
-              <h2 className="text-lg font-semibold">Today's Classes</h2>
+              <h2 className="text-lg font-semibold">Занятия сегодня</h2>
               <Chip color="primary" variant="flat">{getDayName(currentDayNumber)}</Chip>
             </CardHeader>
             <Divider />
@@ -75,7 +76,7 @@ const TeacherDashboard: React.FC = () => {
                             </div>
                             <div>
                               <p className="font-medium">{subject?.name}</p>
-                              <p className="text-default-500 text-sm">{group?.name} • Room {entry.roomNumber}</p>
+                              <p className="text-default-500 text-sm">{group?.name} • Кабинет {entry.roomNumber}</p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -83,7 +84,7 @@ const TeacherDashboard: React.FC = () => {
                               {entry.startTime} - {entry.endTime}
                             </p>
                             {isCurrentClass && (
-                              <Chip color="primary" size="sm">Ongoing</Chip>
+                              <Chip color="primary" size="sm">Сейчас</Chip>
                             )}
                           </div>
                         </div>
@@ -94,7 +95,7 @@ const TeacherDashboard: React.FC = () => {
               ) : (
                 <div className="p-6 text-center">
                   <Icon icon="lucide:calendar" className="mx-auto mb-2 text-default-400" width={32} height={32} />
-                  <p className="text-default-500">No classes scheduled for today</p>
+                  <p className="text-default-500">Нет запланированных занятий на сегодня</p>
                 </div>
               )}
             </CardBody>
@@ -105,12 +106,14 @@ const TeacherDashboard: React.FC = () => {
         <div>
           <Card className="border border-divider">
             <CardHeader>
-              <h2 className="text-lg font-semibold">Quick Access</h2>
+              <h2 className="text-lg font-semibold">Быстрый доступ</h2>
             </CardHeader>
             <Divider />
             <CardBody className="py-4 px-2">
               <div className="grid grid-cols-2 gap-2">
                 <Button 
+                  as={Link}
+                  to="/teacher/grades"
                   variant="flat" 
                   className="h-auto py-4 flex-col text-default-700"
                   startContent={
@@ -119,10 +122,12 @@ const TeacherDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Grade Books</div>
+                  <div className="mt-2 text-sm">Журнал оценок</div>
                 </Button>
                 
                 <Button 
+                  as={Link}
+                  to="/teacher/schedule"
                   variant="flat" 
                   className="h-auto py-4 flex-col text-default-700"
                   startContent={
@@ -131,10 +136,12 @@ const TeacherDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Schedule</div>
+                  <div className="mt-2 text-sm">Расписание</div>
                 </Button>
                 
                 <Button 
+                  as={Link}
+                  to="/teacher/students"
                   variant="flat" 
                   className="h-auto py-4 flex-col text-default-700"
                   startContent={
@@ -143,10 +150,12 @@ const TeacherDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Students</div>
+                  <div className="mt-2 text-sm">Студенты</div>
                 </Button>
                 
                 <Button 
+                  as={Link}
+                  to="/teacher/materials"
                   variant="flat" 
                   className="h-auto py-4 flex-col text-default-700"
                   startContent={
@@ -155,111 +164,50 @@ const TeacherDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Materials</div>
+                  <div className="mt-2 text-sm">Материалы</div>
                 </Button>
               </div>
             </CardBody>
           </Card>
-
-          {/* Recent Activity */}
-          <Card className="border border-divider mt-6">
-            <CardHeader>
-              <h2 className="text-lg font-semibold">Recent Grades</h2>
-            </CardHeader>
-            <Divider />
-            <CardBody className="p-0">
-              <ul className="divide-y divide-divider">
-                {recentGrades.map((grade) => {
-                  const student = getStudentById(grade.studentId);
-                  const subject = getSubjectById(grade.subjectId);
-                  
-                  return (
-                    <li key={grade.id} className="p-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{student?.name}</p>
-                          <p className="text-default-500 text-xs">{subject?.name}</p>
-                        </div>
-                        <Chip 
-                          color={
-                            grade.grade >= 5 ? "success" : 
-                            grade.grade >= 4 ? "primary" : 
-                            grade.grade >= 3 ? "warning" : 
-                            "danger"
-                          }
-                          variant="flat"
-                        >
-                          {grade.grade}
-                        </Chip>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </CardBody>
-          </Card>
         </div>
 
-        {/* Upcoming Deadlines */}
-        <div className="lg:col-span-3">
-          <Card className="border border-divider">
-            <CardHeader className="flex justify-between">
-              <h2 className="text-lg font-semibold">Upcoming Deadlines</h2>
-              <Button color="primary" size="sm" variant="flat">
-                View All
-              </Button>
-            </CardHeader>
-            <Divider />
-            <CardBody className="p-0">
-              {/* Sample deadlines */}
-              <ul className="divide-y divide-divider">
-                {[
-                  {
-                    title: "Submit Final Grades",
-                    subject: "Introduction to Programming",
-                    dueDate: "Oct 15, 2023",
-                    daysLeft: 5
-                  },
-                  {
-                    title: "Course Material Update",
-                    subject: "Data Structures",
-                    dueDate: "Oct 18, 2023",
-                    daysLeft: 8
-                  },
-                  {
-                    title: "Exam Papers Preparation",
-                    subject: "All Courses",
-                    dueDate: "Oct 25, 2023",
-                    daysLeft: 15
-                  }
-                ].map((deadline, index) => (
-                  <li key={index} className="p-4">
-                    <div className="flex justify-between items-start">
+        {/* Recent Activity */}
+        <Card className="border border-divider mt-6">
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Недавние оценки</h2>
+          </CardHeader>
+          <Divider />
+          <CardBody className="p-0">
+            <ul className="divide-y divide-divider">
+              {recentGrades.map((grade) => {
+                const student = getStudentById(grade.studentId);
+                const subject = getSubjectById(grade.subjectId);
+                
+                return (
+                  <li key={grade.id} className="p-3">
+                    <div className="flex justify-between items-center">
                       <div>
-                        <p className="font-medium">{deadline.title}</p>
-                        <p className="text-default-500 text-sm">{deadline.subject}</p>
+                        <p className="font-medium">{student?.name}</p>
+                        <p className="text-default-500 text-xs">{subject?.name}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">{deadline.dueDate}</p>
-                        <Chip 
-                          size="sm"
-                          color={
-                            deadline.daysLeft <= 5 ? "danger" :
-                            deadline.daysLeft <= 10 ? "warning" : 
-                            "primary"
-                          }
-                          variant="flat"
-                        >
-                          {deadline.daysLeft} days left
-                        </Chip>
-                      </div>
+                      <Chip 
+                        color={
+                          grade.grade >= 5 ? "success" : 
+                          grade.grade >= 4 ? "primary" : 
+                          grade.grade >= 3 ? "warning" : 
+                          "danger"
+                        }
+                        variant="flat"
+                      >
+                        {grade.grade}
+                      </Chip>
                     </div>
                   </li>
-                ))}
-              </ul>
-            </CardBody>
-          </Card>
-        </div>
+                );
+              })}
+            </ul>
+          </CardBody>
+        </Card>
       </div>
     </div>
   );

@@ -18,7 +18,10 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  useDisclosure
+  useDisclosure,
+  Select,
+  SelectItem,
+  addToast
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { 
@@ -28,6 +31,7 @@ import {
   getGroupById
 } from '../../data/mock-data';
 import { User } from '../../contexts/auth-context';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TeacherMessages: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = React.useState<string | null>(null);
@@ -74,12 +78,32 @@ const TeacherMessages: React.FC = () => {
     }
   }, [conversationMessages]);
   
-  // Handle sending a new message
+  // Handle sending a new message with animation
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
     
     // In a real app, this would send the message to the API
     console.log('Sending message:', newMessage);
+    
+    // Create a temporary message to show immediately
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      senderId: 't1',
+      receiverId: selectedConversation,
+      content: newMessage,
+      timestamp: new Date().toISOString(),
+      isRead: true
+    };
+    
+    // Add the temporary message to the UI
+    const updatedMessages = [...conversationMessages, tempMessage];
+    
+    // Simulate sending the message
+    addToast({
+      title: "Сообщение отправлено",
+      description: "Ваше сообщение успешно отправлено",
+      color: "success",
+    });
     
     // Clear input
     setNewMessage('');
@@ -89,6 +113,12 @@ const TeacherMessages: React.FC = () => {
   const formatMessageTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Add missing handleCreateMessage function
+  const handleCreateMessage = () => {
+    // In a real app, this would prepare a new message
+    onOpen();
   };
 
   return (
@@ -118,7 +148,7 @@ const TeacherMessages: React.FC = () => {
                 variant="flat" 
                 size="sm"
                 color="primary"
-                onPress={onOpen}
+                onPress={handleCreateMessage}
               >
                 <Icon icon="lucide:edit" />
               </Button>
@@ -199,33 +229,54 @@ const TeacherMessages: React.FC = () => {
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu>
-                    <DropdownItem>Профиль студента</DropdownItem>
-                    <DropdownItem>Очистить историю</DropdownItem>
+                    <DropdownItem key="profile">Профиль студента</DropdownItem>
+                    <DropdownItem key="clear-history">Очистить историю</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
               </div>
               
-              {/* Messages */}
+              {/* Messages with animations */}
               <div className="flex-1 overflow-y-auto p-4">
                 {conversationMessages.length > 0 ? (
                   <div className="space-y-4">
-                    {conversationMessages.map(msg => {
-                      const isCurrentUser = msg.senderId === 't1';
-                      
-                      return (
-                        <div 
-                          key={msg.id} 
-                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`max-w-[70%] ${isCurrentUser ? 'bg-primary-100' : 'bg-content2'} rounded-lg p-3`}>
-                            <p>{msg.content}</p>
-                            <p className="text-xs text-default-400 text-right mt-1">
-                              {formatMessageTime(msg.timestamp)}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <AnimatePresence initial={false}>
+                      {conversationMessages.map(msg => {
+                        const isCurrentUser = msg.senderId === 't1';
+                        
+                        return (
+                          <motion.div 
+                            key={msg.id} 
+                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 30,
+                              opacity: { duration: 0.2 }
+                            }}
+                          >
+                            <motion.div 
+                              className={`max-w-[70%] ${isCurrentUser ? 'bg-primary-100' : 'bg-content2'} rounded-lg p-3`}
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <p>{msg.content}</p>
+                              <p className="text-xs text-default-400 text-right mt-1">
+                                {formatMessageTime(msg.timestamp)}
+                                {isCurrentUser && msg.id.startsWith('temp-') && (
+                                  <span className="ml-2 text-primary-500">
+                                    <Icon icon="lucide:check" width={12} />
+                                  </span>
+                                )}
+                              </p>
+                            </motion.div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
                     <div ref={messagesEndRef} />
                   </div>
                 ) : (
@@ -289,12 +340,12 @@ const TeacherMessages: React.FC = () => {
                   label="Получатель"
                   placeholder="Выберите получателя"
                 >
-                  <SelectItem key="all-students" value="all-students">Всем студентам</SelectItem>
+                  <SelectItem key="all-students">Всем студентам</SelectItem>
                   <SelectItem key="divider-1" isReadOnly isDisabled className="text-default-300">
                     Группы
                   </SelectItem>
                   {['CS-101', 'CS-201', 'ME-101', 'EE-101'].map((group, index) => (
-                    <SelectItem key={`g${index + 1}`} value={`g${index + 1}`}>
+                    <SelectItem key={`g${index + 1}`}>
                       {group}
                     </SelectItem>
                   ))}
@@ -302,7 +353,7 @@ const TeacherMessages: React.FC = () => {
                     Студенты
                   </SelectItem>
                   {students.map(student => (
-                    <SelectItem key={student.id} value={student.id}>
+                    <SelectItem key={student.id}>
                       {student.name}
                     </SelectItem>
                   ))}

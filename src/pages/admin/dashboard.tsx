@@ -15,19 +15,19 @@ const AdminDashboard: React.FC = () => {
   const hours = currentDate.getHours();
   
   // Determine appropriate greeting based on time of day
-  let greeting = 'Good morning';
+  let greeting = 'Доброе утро';
   if (hours >= 12 && hours < 18) {
-    greeting = 'Good afternoon';
+    greeting = 'Добрый день';
   } else if (hours >= 18) {
-    greeting = 'Good evening';
+    greeting = 'Добрый вечер';
   }
 
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">{greeting}, Admin</h1>
+        <h1 className="text-2xl font-bold mb-2">{greeting}, Администратор</h1>
         <p className="text-default-500">
-          Here's what's happening in your college management system.
+          Вот что происходит в системе управления колледжем.
         </p>
       </div>
 
@@ -39,7 +39,7 @@ const AdminDashboard: React.FC = () => {
               <Icon icon="lucide:users" width={24} height={24} />
             </div>
             <div>
-              <p className="text-sm text-default-500">Total Students</p>
+              <p className="text-sm text-default-500">Всего студентов</p>
               <h3 className="text-2xl font-bold">{students.length}</h3>
             </div>
           </CardBody>
@@ -51,7 +51,7 @@ const AdminDashboard: React.FC = () => {
               <Icon icon="lucide:book-open" width={24} height={24} />
             </div>
             <div>
-              <p className="text-sm text-default-500">Total Teachers</p>
+              <p className="text-sm text-default-500">Всего учителей</p>
               <h3 className="text-2xl font-bold">{teachers.length}</h3>
             </div>
           </CardBody>
@@ -63,7 +63,7 @@ const AdminDashboard: React.FC = () => {
               <Icon icon="lucide:layers" width={24} height={24} />
             </div>
             <div>
-              <p className="text-sm text-default-500">Student Groups</p>
+              <p className="text-sm text-default-500">Группы студентов</p>
               <h3 className="text-2xl font-bold">{groups.length}</h3>
             </div>
           </CardBody>
@@ -75,7 +75,7 @@ const AdminDashboard: React.FC = () => {
               <Icon icon="lucide:book" width={24} height={24} />
             </div>
             <div>
-              <p className="text-sm text-default-500">Total Subjects</p>
+              <p className="text-sm text-default-500">Всего предметов</p>
               <h3 className="text-2xl font-bold">{subjects.length}</h3>
             </div>
           </CardBody>
@@ -87,7 +87,7 @@ const AdminDashboard: React.FC = () => {
         <div className="lg:col-span-2">
           <Card className="border border-divider">
             <CardHeader className="flex gap-3">
-              <h2 className="text-lg font-semibold">Recent Activities</h2>
+              <h2 className="text-lg font-semibold">Недавняя активность</h2>
             </CardHeader>
             <Divider />
             <CardBody className="p-0">
@@ -97,37 +97,37 @@ const AdminDashboard: React.FC = () => {
                   {
                     icon: 'lucide:user-plus',
                     color: 'bg-primary-100 text-primary',
-                    title: 'New student registered',
-                    description: 'Jessica Williams was added to CS-101 group',
-                    time: '2 hours ago'
+                    title: 'Зарегистрирован новый студент',
+                    description: 'Иванова Мария добавлена в группу ИТ-101',
+                    time: '2 часа назад'
                   },
                   {
                     icon: 'lucide:calendar-plus',
                     color: 'bg-success-100 text-success',
-                    title: 'Schedule updated',
-                    description: 'Web Development class moved to room C305',
-                    time: '4 hours ago'
+                    title: 'Расписание обновлено',
+                    description: 'Класс Информатика перенесен в аудиторию C305',
+                    time: '4 часа назад'
                   },
                   {
                     icon: 'lucide:clipboard-edit',
                     color: 'bg-warning-100 text-warning',
-                    title: 'Grade updated',
-                    description: 'Dr. John Smith updated grades for Programming class',
-                    time: '5 hours ago'
+                    title: 'Оценки обновлены',
+                    description: 'Доктор Джон Смит обновил оценки для класса Программирование',
+                    time: '5 часов назад'
                   },
                   {
                     icon: 'lucide:file-plus',
                     color: 'bg-secondary-100 text-secondary',
-                    title: 'New course material added',
-                    description: 'Prof. Mary Johnson uploaded new materials for Database Systems',
-                    time: '1 day ago'
+                    title: 'Добавлен новый материал',
+                    description: 'Преподаватель Мария Джонсон загрузила новые материалы для предмета Базы данных',
+                    time: '1 день назад'
                   },
                   {
                     icon: 'lucide:user-minus',
                     color: 'bg-danger-100 text-danger',
-                    title: 'Student removed',
-                    description: 'A student was removed from ME-101 group',
-                    time: '2 days ago'
+                    title: 'Студент удален',
+                    description: 'Студент был удален из группы ME-101',
+                    time: '2 дня назад'
                   }
                 ].map((activity, index) => (
                   <li key={index} className="p-4">
@@ -152,7 +152,7 @@ const AdminDashboard: React.FC = () => {
         <div>
           <Card className="border border-divider">
             <CardHeader className="flex gap-3">
-              <h2 className="text-lg font-semibold">System Notifications</h2>
+              <h2 className="text-lg font-semibold">Системные уведомления</h2>
             </CardHeader>
             <Divider />
             <CardBody className="p-0">
@@ -160,28 +160,28 @@ const AdminDashboard: React.FC = () => {
                 {/* Notification items */}
                 {[
                   {
-                    title: 'System Update',
-                    description: 'The system will be updated tonight at 2:00 AM. Expect 10 minutes of downtime.',
+                    title: 'Обновление системы',
+                    description: 'Система будет обновлена сегодня в 2:00. Ожидается 10 минут простоя.',
                     color: 'warning',
-                    time: 'Today'
+                    time: 'Сегодня'
                   },
                   {
-                    title: 'Data Backup',
-                    description: 'Weekly data backup scheduled for Sunday, 12:00 AM.',
+                    title: 'Бэкап данных',
+                    description: 'Бэкап данных будет проводиться на воскресенье, в 12:00.',
                     color: 'primary',
-                    time: 'Tomorrow'
+                    time: 'Завтра'
                   },
                   {
-                    title: 'End of Semester',
-                    description: 'Reminder: End of semester is in 2 weeks. Ensure all grades are submitted.',
+                    title: 'Конец семестра',
+                    description: 'Помните: конец семестра через 2 недели. Убедитесь, что все оценки сданы.',
                     color: 'danger',
-                    time: '2 weeks'
+                    time: '2 недели'
                   },
                   {
-                    title: 'New Feature',
-                    description: 'Attendance tracking module will be available next week.',
+                    title: 'Новая функция',
+                    description: 'Модуль отслеживания присутствия будет доступен в следующей неделе.',
                     color: 'success',
-                    time: '1 week'
+                    time: '1 неделя'
                   }
                 ].map((notification, index) => (
                   <li key={index} className="p-4">

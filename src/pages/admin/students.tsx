@@ -26,30 +26,67 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Divider
+  Divider,
+  Progress,
+  Select,
+  SelectItem,
+  addToast
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { students, getGroupById, getStudentGrades, getSubjectById } from '../../data/mock-data';
-import { Student } from '../../data/mock-data';
+import { ChangeIndicator } from '../../components/change-indicator';
+
+// Add missing Student type definition
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  groupId: string;
+  avatar: string;
+  dateOfBirth?: string;
+  address?: string;
+}
+
+// Add a custom UUID generator function
+const generateUUID = () => {
+  return Math.random().toString(36).substring(2, 9) + 
+    Date.now().toString(36);
+};
 
 const AdminStudents: React.FC = () => {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedStudent, setSelectedStudent] = React.useState<Student | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selectedTab, setSelectedTab] = React.useState<string>("profile");
+  const [newStudent, setNewStudent] = React.useState({
+    name: '',
+    email: '',
+    phone: '',
+    groupId: '',
+    dateOfBirth: '',
+    address: ''
+  });
+  const [studentsData, setStudentsData] = React.useState(students);
+  const [recentlyChanged, setRecentlyChanged] = React.useState<Record<string, string>>({});
+
+  // Add missing groupIds definition
+  const groupIds = React.useMemo(() => {
+    return Array.from(new Set(students.map(student => student.groupId)));
+  }, []);
 
   // Filter students based on search query
   const filteredStudents = React.useMemo(() => {
-    if (!searchQuery.trim()) return students;
+    if (!searchQuery.trim()) return studentsData;
     
     const lowerCaseQuery = searchQuery.toLowerCase();
-    return students.filter(student => 
+    return studentsData.filter(student => 
       student.name.toLowerCase().includes(lowerCaseQuery) ||
       student.email.toLowerCase().includes(lowerCaseQuery) ||
       getGroupById(student.groupId)?.name.toLowerCase().includes(lowerCaseQuery) ||
       getGroupById(student.groupId)?.specialization.toLowerCase().includes(lowerCaseQuery)
     );
-  }, [searchQuery]);
+  }, [searchQuery, studentsData]);
 
   // Handle student selection for details view
   const handleStudentSelect = (student: Student) => {
@@ -57,19 +94,111 @@ const AdminStudents: React.FC = () => {
     onOpen();
   };
 
+  // Add handlers for CRUD operations
+  const handleAddStudent = () => {
+    setSelectedStudent(null);
+    setNewStudent({
+      name: '',
+      email: '',
+      phone: '',
+      groupId: '',
+      dateOfBirth: '',
+      address: ''
+    });
+    onOpen();
+    
+    addToast({
+      title: "Добавление студента",
+      description: "Форма добавления студента открыта",
+      color: "primary",
+    });
+  };
+  
+  const handleEditStudent = (studentId: string) => {
+    // In a real app, this would open a form to edit the student
+    console.log("Edit student:", studentId);
+    
+    addToast({
+      title: "Редактирование студента",
+      description: "Форма редактирования студента открыта",
+      color: "primary",
+    });
+  };
+  
+  const handleDeleteStudent = (studentId: string) => {
+    // In a real app, this would show a confirmation dialog and then delete the student
+    console.log("Delete student:", studentId);
+    
+    addToast({
+      title: "Студент удален",
+      description: "Студент был успешно удален из системы",
+      color: "success",
+    });
+  };
+
+  // Add form change handler
+  const handleFormChange = (field: string, value: any) => {
+    if (selectedStudent) {
+      setSelectedStudent({
+        ...selectedStudent,
+        [field]: value
+      });
+    } else {
+      setNewStudent({
+        ...newStudent,
+        [field]: value
+      });
+    }
+  };
+
+  // Add save student function
+  const handleSaveStudent = () => {
+    if (selectedStudent) {
+      // Update existing student
+      const updatedStudents = studentsData.map(s => 
+        s.id === selectedStudent.id ? selectedStudent : s
+      );
+      setStudentsData(updatedStudents);
+      setRecentlyChanged({ [selectedStudent.id]: 'updated' });
+    } else {
+      // Add new student - using our custom generator instead of uuidv4
+      const newStudentWithId = {
+        ...newStudent,
+        id: `st-${generateUUID()}`,
+        avatar: `https://img.heroui.chat/image/avatar?w=200&h=200&u=${Math.floor(Math.random() * 100)}`
+      };
+      setStudentsData([newStudentWithId, ...studentsData]);
+      setRecentlyChanged({ [newStudentWithId.id]: 'added' });
+    }
+    
+    onOpenChange(false);
+    
+    addToast({
+      title: selectedStudent ? "Студент обновлен" : "Студент добавлен",
+      description: selectedStudent 
+        ? "Данные студента успешно обновлены" 
+        : "Новый студент успешно добавлен в систему",
+      color: "success",
+    });
+    
+    // Clear change indicator after 3 seconds
+    setTimeout(() => setRecentlyChanged({}), 3000);
+  };
+
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Students</h1>
-          <p className="text-default-500">Manage student information and academic records</p>
+          <h1 className="text-2xl font-bold">Студенты</h1>
+          <p className="text-default-500">Управление информацией о студентах</p>
         </div>
         
         <Button 
           color="primary" 
           endContent={<Icon icon="lucide:plus" />}
+          onPress={handleAddStudent}
         >
-          Add Student
+          Добавить студента
         </Button>
       </div>
       
@@ -125,9 +254,17 @@ const AdminStudents: React.FC = () => {
           <TableBody>
             {filteredStudents.map((student) => {
               const group = getGroupById(student.groupId);
+              const isRecentlyChanged = recentlyChanged[student.id];
               
               return (
-                <TableRow key={student.id}>
+                <TableRow 
+                  key={student.id}
+                  className={`${
+                    isRecentlyChanged === 'deleted' ? 'bg-danger-50' : 
+                    isRecentlyChanged === 'added' ? 'bg-success-50' : 
+                    isRecentlyChanged === 'updated' ? 'bg-primary-50' : ''
+                  }`}
+                >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar src={student.avatar} name={student.name} size="sm" />
@@ -157,12 +294,23 @@ const AdminStudents: React.FC = () => {
                         </Button>
                       </Tooltip>
                       <Tooltip content="Edit">
-                        <Button isIconOnly size="sm" variant="light">
+                        <Button 
+                          isIconOnly 
+                          size="sm" 
+                          variant="light"
+                          onPress={() => handleEditStudent(student.id)}
+                        >
                           <Icon icon="lucide:edit" className="text-default-500" />
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete">
-                        <Button isIconOnly size="sm" variant="light" color="danger">
+                        <Button 
+                          isIconOnly 
+                          size="sm" 
+                          variant="light" 
+                          color="danger"
+                          onPress={() => handleDeleteStudent(student.id)}
+                        >
                           <Icon icon="lucide:trash-2" />
                         </Button>
                       </Tooltip>
@@ -185,9 +333,11 @@ const AdminStudents: React.FC = () => {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Student Details</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">
+                {selectedStudent ? "Информация о студенте" : "Добавление нового студента"}
+              </ModalHeader>
               <ModalBody>
-                {selectedStudent && (
+                {selectedStudent ? (
                   <div>
                     <Tabs 
                       selectedKey={selectedTab}
@@ -198,31 +348,54 @@ const AdminStudents: React.FC = () => {
                         <div className="space-y-6 py-4">
                           <div className="flex items-center gap-4">
                             <Avatar src={selectedStudent.avatar} name={selectedStudent.name} size="lg" />
-                            <div>
-                              <h2 className="text-xl font-semibold">{selectedStudent.name}</h2>
-                              <p className="text-default-500">
-                                {getGroupById(selectedStudent.groupId)?.name} - {getGroupById(selectedStudent.groupId)?.specialization}
-                              </p>
+                            <div className="flex-1">
+                              <Input
+                                label="ФИО"
+                                value={selectedStudent.name}
+                                onValueChange={(value) => handleFormChange("name", value)}
+                              />
                             </div>
                           </div>
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-default-500 text-sm mb-1">Email</p>
-                              <p>{selectedStudent.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-default-500 text-sm mb-1">Phone</p>
-                              <p>{selectedStudent.phone || "Not provided"}</p>
-                            </div>
-                            <div>
-                              <p className="text-default-500 text-sm mb-1">Date of Birth</p>
-                              <p>{selectedStudent.dateOfBirth || "Not provided"}</p>
-                            </div>
-                            <div>
-                              <p className="text-default-500 text-sm mb-1">Address</p>
-                              <p>{selectedStudent.address || "Not provided"}</p>
-                            </div>
+                            <Input
+                              label="Email"
+                              value={selectedStudent.email}
+                              onValueChange={(value) => handleFormChange("email", value)}
+                            />
+                            <Input
+                              label="Телефон"
+                              value={selectedStudent.phone || ""}
+                              onValueChange={(value) => handleFormChange("phone", value)}
+                            />
+                            <Select
+                              label="Группа"
+                              placeholder="Выберите группу"
+                              selectedKeys={[selectedStudent.groupId]}
+                              onChange={(e) => handleFormChange("groupId", e.target.value)}
+                              aria-label="Выберите группу студента"
+                            >
+                              {groupIds.map(groupId => {
+                                const group = getGroupById(groupId);
+                                return group && (
+                                  <SelectItem key={group.id} value={group.id} textValue={group.name}>
+                                    {group.name} - {group.specialization}
+                                  </SelectItem>
+                                );
+                              })}
+                            </Select>
+                            <Input
+                              label="Дата рождения"
+                              type="date"
+                              value={selectedStudent.dateOfBirth || ""}
+                              onChange={(e) => handleFormChange("dateOfBirth", e.target.value)}
+                            />
+                            <Input
+                              label="Адрес"
+                              value={selectedStudent.address || ""}
+                              onValueChange={(value) => handleFormChange("address", value)}
+                              className="col-span-2"
+                            />
                           </div>
                         </div>
                       </Tab>
@@ -286,14 +459,75 @@ const AdminStudents: React.FC = () => {
                       </Tab>
                     </Tabs>
                   </div>
+                ) : (
+                  <div className="space-y-6 py-4">
+                    <Input
+                      label="ФИО"
+                      placeholder="Введите ФИО студента"
+                      value={newStudent.name}
+                      onValueChange={(value) => handleFormChange("name", value)}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Email"
+                        placeholder="email@example.com"
+                        value={newStudent.email}
+                        onValueChange={(value) => handleFormChange("email", value)}
+                      />
+                      <Input
+                        label="Телефон"
+                        placeholder="+7 (XXX) XXX-XX-XX"
+                        value={newStudent.phone}
+                        onValueChange={(value) => handleFormChange("phone", value)}
+                      />
+                      <Select
+                        label="Группа"
+                        placeholder="Выберите группу"
+                        selectedKeys={newStudent.groupId ? [newStudent.groupId] : []}
+                        onChange={(e) => handleFormChange("groupId", e.target.value)}
+                        aria-label="Выберите группу студента"
+                      >
+                        {groupIds.map(groupId => {
+                          const group = getGroupById(groupId);
+                          return group && (
+                            <SelectItem key={group.id} value={group.id} textValue={group.name}>
+                              {group.name} - {group.specialization}
+                            </SelectItem>
+                          );
+                        })}
+                      </Select>
+                      <Input
+                        label="Дата рождения"
+                        type="date"
+                        placeholder="YYYY-MM-DD"
+                        value={newStudent.dateOfBirth}
+                        onChange={(e) => handleFormChange("dateOfBirth", e.target.value)}
+                      />
+                      <Input
+                        label="Адрес"
+                        placeholder="Введите адрес"
+                        value={newStudent.address}
+                        onValueChange={(value) => handleFormChange("address", value)}
+                        className="col-span-2"
+                      />
+                    </div>
+                  </div>
                 )}
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
-                  Close
+                  {selectedStudent ? "Закрыть" : "Отмена"}
                 </Button>
-                <Button color="primary">
-                  Edit Information
+                <Button 
+                  color="primary" 
+                  onPress={handleSaveStudent}
+                  isDisabled={selectedStudent 
+                    ? !selectedStudent.name || !selectedStudent.email || !selectedStudent.groupId
+                    : !newStudent.name || !newStudent.email || !newStudent.groupId
+                  }
+                >
+                  {selectedStudent ? "Сохранить изменения" : "Добавить студента"}
                 </Button>
               </ModalFooter>
             </>

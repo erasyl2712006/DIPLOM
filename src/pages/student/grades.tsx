@@ -21,9 +21,11 @@ import {
   getSubjectById,
   getTeacherById
 } from '../../data/mock-data';
+import { motion } from 'framer-motion';
 
 const StudentGrades: React.FC = () => {
   const [selectedSubject, setSelectedSubject] = React.useState<string>("all");
+  const [lastViewedGrade, setLastViewedGrade] = React.useState<string | null>(null);
   
   // Get all grades for the student
   const allGrades = getStudentGrades('st1');
@@ -69,12 +71,22 @@ const StudentGrades: React.FC = () => {
     return subjects;
   }, [allGrades]);
 
+  // Add highlight effect for viewed grades
+  const handleGradeRowClick = (gradeId: string) => {
+    setLastViewedGrade(gradeId);
+    
+    // Remove highlight after animation duration
+    setTimeout(() => {
+      setLastViewedGrade(null);
+    }, 2000);
+  };
+
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">My Grades</h1>
+        <h1 className="text-2xl font-bold mb-2">Мои оценки</h1>
         <p className="text-default-500">
-          View your academic performance and grades
+          Просмотр вашей успеваемости и оценок
         </p>
       </div>
 
@@ -82,24 +94,24 @@ const StudentGrades: React.FC = () => {
         {/* Summary Card */}
         <Card className="border border-divider">
           <CardHeader>
-            <h2 className="text-lg font-semibold">Grade Summary</h2>
+            <h2 className="text-lg font-semibold">Сводка оценок</h2>
           </CardHeader>
           <Divider />
           <CardBody>
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-3xl font-bold">{averageGrade.toFixed(1)}</h3>
-                <p className="text-default-500">Average Grade</p>
+                <p className="text-default-500">Средний балл</p>
               </div>
               
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span>Performance</span>
+                  <span>Успеваемость</span>
                   <span>
-                    {averageGrade >= 4.5 ? "Excellent" : 
-                     averageGrade >= 3.5 ? "Good" : 
-                     averageGrade >= 2.5 ? "Satisfactory" : 
-                     "Needs Improvement"}
+                    {averageGrade >= 4.5 ? "Отлично" : 
+                     averageGrade >= 3.5 ? "Хорошо" : 
+                     averageGrade >= 2.5 ? "Удовлетворительно" : 
+                     "Требует улучшения"}
                   </span>
                 </div>
                 <Progress 
@@ -114,7 +126,7 @@ const StudentGrades: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <p className="font-medium">Subject Breakdown</p>
+                <p className="font-medium">Оценки по предметам</p>
                 {Object.values(subjectGrades).map((subject, index) => (
                   <div key={index}>
                     <div className="flex justify-between text-sm mb-1">
@@ -143,14 +155,19 @@ const StudentGrades: React.FC = () => {
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-4">
             <Select
-              label="Filter by Subject"
+              label="Фильтр по предмету"
               className="max-w-xs"
               selectedKeys={[selectedSubject]}
               onChange={(e) => setSelectedSubject(e.target.value)}
+              aria-label="Фильтровать оценки по предмету"
             >
-              <SelectItem key="all" value="all">All Subjects</SelectItem>
+              <SelectItem key="all" value="all" textValue="Все предметы">Все предметы</SelectItem>
               {Object.values(subjectGrades).map((subject, index) => (
-                <SelectItem key={Object.keys(subjectGrades)[index]} value={Object.keys(subjectGrades)[index]}>
+                <SelectItem 
+                  key={Object.keys(subjectGrades)[index]} 
+                  value={Object.keys(subjectGrades)[index]} 
+                  textValue={subject.name}
+                >
                   {subject.name}
                 </SelectItem>
               ))}
@@ -158,21 +175,26 @@ const StudentGrades: React.FC = () => {
           </div>
           
           <Card className="border border-divider">
-            <Table removeWrapper aria-label="Student grades table">
+            <Table removeWrapper aria-label="Таблица оценок">
               <TableHeader>
-                <TableColumn>SUBJECT</TableColumn>
-                <TableColumn>GRADE</TableColumn>
-                <TableColumn>DATE</TableColumn>
-                <TableColumn>TEACHER</TableColumn>
-                <TableColumn>COMMENT</TableColumn>
+                <TableColumn>ПРЕДМЕТ</TableColumn>
+                <TableColumn>ОЦЕНКА</TableColumn>
+                <TableColumn>ДАТА</TableColumn>
+                <TableColumn>ПРЕПОДАВАТЕЛЬ</TableColumn>
+                <TableColumn>КОММЕНТАРИЙ</TableColumn>
               </TableHeader>
               <TableBody>
                 {filteredGrades.map((grade) => {
                   const subject = getSubjectById(grade.subjectId);
                   const teacher = getTeacherById(grade.teacherId);
+                  const isHighlighted = grade.id === lastViewedGrade;
                   
                   return (
-                    <TableRow key={grade.id}>
+                    <TableRow 
+                      key={grade.id} 
+                      onClick={() => handleGradeRowClick(grade.id)}
+                      className={`cursor-pointer ${isHighlighted ? 'bg-primary-50' : ''}`}
+                    >
                       <TableCell>{subject?.name}</TableCell>
                       <TableCell>
                         <Chip 
@@ -191,7 +213,7 @@ const StudentGrades: React.FC = () => {
                       <TableCell>{teacher?.name}</TableCell>
                       <TableCell>
                         <p className="text-default-600 truncate max-w-[180px]">
-                          {grade.comment || "No comment"}
+                          {grade.comment || "Нет комментария"}
                         </p>
                       </TableCell>
                     </TableRow>

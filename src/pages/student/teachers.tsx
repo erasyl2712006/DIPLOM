@@ -48,15 +48,15 @@ const StudentTeachers: React.FC = () => {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Teachers</h1>
+        <h1 className="text-2xl font-bold mb-2">Преподаватели</h1>
         <p className="text-default-500">
-          View information about your professors and instructors
+          Просмотр информации о профессорах и преподавателях
         </p>
       </div>
 
       <div className="flex justify-between items-center mb-6">
         <Input
-          placeholder="Search teachers by name or subject..."
+          placeholder="Поиск преподавателей по имени или предмету..."
           value={searchQuery}
           onValueChange={setSearchQuery}
           startContent={<Icon icon="lucide:search" className="text-default-400" />}

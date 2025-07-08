@@ -21,9 +21,12 @@ import {
   useDisclosure,
   Textarea,
   Select,
-  SelectItem
+  SelectItem,
+  addToast,
+  Card
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   students, 
   subjects, 
@@ -33,23 +36,23 @@ import {
   getGroupById
 } from '../../data/mock-data';
 
-interface EditGradeData {
-  id: string;
-  studentId: string;
-  subjectId: string;
-  grade: number;
-  comment: string;
-}
+// Add a custom UUID generator function
+const generateUUID = () => {
+  return Math.random().toString(36).substring(2, 9) + 
+    Date.now().toString(36);
+};
 
 const TeacherGrades: React.FC = () => {
   const [selectedSubject, setSelectedSubject] = React.useState<string>("all");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [editingGrade, setEditingGrade] = React.useState<EditGradeData | null>(null);
+  const [gradesData, setGradesData] = React.useState(gradeEntries);
+  const [recentlyChanged, setRecentlyChanged] = React.useState<string[]>([]);
   
   // Filter grades based on selected subject and search query
   const filteredGrades = React.useMemo(() => {
-    let filtered = [...gradeEntries];
+    let filtered = [...gradesData];
     
     // Filter by teacher (hardcoded to t1 for now)
     filtered = filtered.filter(grade => grade.teacherId === 't1');
@@ -74,7 +77,7 @@ const TeacherGrades: React.FC = () => {
     }
     
     return filtered;
-  }, [selectedSubject, searchQuery]);
+  }, [selectedSubject, searchQuery, gradesData]);
   
   // Start editing a grade
   const handleEditGrade = (gradeId: string) => {
@@ -90,33 +93,96 @@ const TeacherGrades: React.FC = () => {
       onOpen();
     }
   };
+
+  // Add handlers for CRUD operations
+  const handleAddGrade = () => {
+    // Initialize editingGrade with default values for a new grade
+    setEditingGrade({
+      id: `new-${Date.now()}`,
+      studentId: "",
+      subjectId: selectedSubject !== "all" ? selectedSubject : subjects[0]?.id || "",
+      grade: 5,
+      comment: ""
+    });
+    onOpen();
+  };
   
   // Save edited grade
   const handleSaveGrade = () => {
-    // In a real app, this would update the backend
-    console.log("Saving grade:", editingGrade);
+    if (!editingGrade) return;
+    
+    const now = new Date();
+    const formattedDate = now.toISOString().split('T')[0];
+    
+    if (editingGrade.id.startsWith('new-')) {
+      // Creating a new grade - using generateUUID instead of uuidv4
+      const newGrade = {
+        ...editingGrade,
+        id: `g-${generateUUID()}`,
+        date: formattedDate,
+        teacherId: 't1'
+      };
+      
+      setGradesData([newGrade, ...gradesData]);
+      setRecentlyChanged([newGrade.id]);
+    } else {
+      // Updating existing grade
+      const updatedGrades = gradesData.map(g => 
+        g.id === editingGrade.id ? {...editingGrade, date: formattedDate} : g
+      );
+      setGradesData(updatedGrades);
+      setRecentlyChanged([editingGrade.id]);
+    }
+    
     onClose();
+    
+    addToast({
+      title: "Оценка сохранена",
+      description: "Изменения были успешно сохранены",
+      color: "success",
+    });
+    
+    // Clear highlight after 3 seconds
+    setTimeout(() => setRecentlyChanged([]), 3000);
+  };
+  
+  const handleDeleteGrade = (gradeId: string) => {
+    setRecentlyChanged([gradeId]);
+    
+    setTimeout(() => {
+      const updatedGrades = gradesData.filter(g => g.id !== gradeId);
+      setGradesData(updatedGrades);
+      
+      addToast({
+        title: "Оценка удалена",
+        description: "Оценка была успешно удалена из системы",
+        color: "success",
+      });
+      
+      setRecentlyChanged([]);
+    }, 400);
   };
 
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Grade Book</h1>
+        <h1 className="text-2xl font-bold mb-2">Журнал оценок</h1>
         <p className="text-default-500">
-          Manage and view student grades
+          Управление и просмотр оценок студентов
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div className="w-full max-w-xs">
           <Select
-            label="Filter by Subject"
+            label="Фильтр по предмету"
             selectedKeys={[selectedSubject]}
             onChange={(e) => setSelectedSubject(e.target.value)}
+            aria-label="Фильтр предметов"
           >
-            <SelectItem key="all" value="all">All Subjects</SelectItem>
+            <SelectItem key="all" textValue="Все предметы">Все предметы</SelectItem>
             {subjects.map((subject) => (
-              <SelectItem key={subject.id} value={subject.id}>
+              <SelectItem key={subject.id} value={subject.id} textValue={subject.name}>
                 {subject.name}
               </SelectItem>
             ))}
@@ -125,7 +191,7 @@ const TeacherGrades: React.FC = () => {
         
         <div className="w-full max-w-xs">
           <Input
-            placeholder="Search students..."
+            placeholder="Поиск студентов..."
             value={searchQuery}
             onValueChange={setSearchQuery}
             startContent={<Icon icon="lucide:search" className="text-default-400" />}
@@ -136,8 +202,9 @@ const TeacherGrades: React.FC = () => {
         <Button 
           color="primary" 
           endContent={<Icon icon="lucide:plus" />}
+          onPress={handleAddGrade}
         >
-          Add New Grade
+          Добавить оценку
         </Button>
       </div>
 
@@ -156,9 +223,13 @@ const TeacherGrades: React.FC = () => {
               const student = getStudentById(grade.studentId);
               const subject = getSubjectById(grade.subjectId);
               const group = student ? getGroupById(student.groupId) : null;
+              const isHighlighted = recentlyChanged.includes(grade.id);
               
               return (
-                <TableRow key={grade.id}>
+                <TableRow 
+                  key={grade.id}
+                  className={isHighlighted ? 'bg-primary-50' : ''}
+                >
                   <TableCell>
                     <div>
                       <p className="font-medium">{student?.name}</p>
@@ -195,7 +266,13 @@ const TeacherGrades: React.FC = () => {
                       >
                         <Icon icon="lucide:edit" className="text-default-500" />
                       </Button>
-                      <Button isIconOnly size="sm" variant="light" color="danger">
+                      <Button 
+                        isIconOnly 
+                        size="sm" 
+                        variant="light" 
+                        color="danger"
+                        onPress={() => handleDeleteGrade(grade.id)}
+                      >
                         <Icon icon="lucide:trash-2" />
                       </Button>
                     </div>
@@ -216,31 +293,66 @@ const TeacherGrades: React.FC = () => {
               <ModalBody>
                 {editingGrade && (
                   <div className="space-y-4">
-                    <div>
-                      <p className="text-default-500 text-sm mb-1">Student</p>
-                      <p className="font-medium">{getStudentById(editingGrade.studentId)?.name}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-default-500 text-sm mb-1">Subject</p>
-                      <p className="font-medium">{getSubjectById(editingGrade.subjectId)?.name}</p>
-                    </div>
+                    {editingGrade.id.startsWith('new-') ? (
+                      <>
+                        <Select
+                          label="Студент"
+                          placeholder="Выберите студента"
+                          selectedKeys={editingGrade.studentId ? [editingGrade.studentId] : []}
+                          onChange={(e) => setEditingGrade({...editingGrade, studentId: e.target.value})}
+                          aria-label="Выберите студента для оценки"
+                        >
+                          {students.map(student => (
+                            <SelectItem key={student.id} value={student.id} textValue={student.name}>
+                              {student.name} ({getGroupById(student.groupId)?.name})
+                            </SelectItem>
+                          ))}
+                        </Select>
+                        
+                        <Select
+                          label="Предмет"
+                          placeholder="Выберите предмет"
+                          selectedKeys={editingGrade.subjectId ? [editingGrade.subjectId] : []}
+                          onChange={(e) => setEditingGrade({...editingGrade, subjectId: e.target.value})}
+                          aria-label="Выберите предмет для оценки"
+                        >
+                          {subjects.filter(subject => subject.teacherId === 't1').map(subject => (
+                            <SelectItem key={subject.id} value={subject.id} textValue={subject.name}>
+                              {subject.name}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <p className="text-default-500 text-sm mb-1">Студент</p>
+                          <p className="font-medium">{getStudentById(editingGrade.studentId)?.name}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-default-500 text-sm mb-1">Предмет</p>
+                          <p className="font-medium">{getSubjectById(editingGrade.subjectId)?.name}</p>
+                        </div>
+                      </>
+                    )}
                     
                     <Select
-                      label="Grade"
+                      label="Оценка"
                       selectedKeys={[String(editingGrade.grade)]}
                       onChange={(e) => setEditingGrade({...editingGrade, grade: Number(e.target.value)})}
+                      aria-label="Выберите оценку"
                     >
-                      <SelectItem key="5" value="5">5 - Excellent</SelectItem>
-                      <SelectItem key="4" value="4">4 - Good</SelectItem>
-                      <SelectItem key="3" value="3">3 - Satisfactory</SelectItem>
-                      <SelectItem key="2" value="2">2 - Unsatisfactory</SelectItem>
-                      <SelectItem key="1" value="1">1 - Failed</SelectItem>
+                      <SelectItem key="5" value="5" textValue="5 - Отлично">5 - Отлично</SelectItem>
+                      <SelectItem key="4" value="4" textValue="4 - Хорошо">4 - Хорошо</SelectItem>
+                      <SelectItem key="3" value="3" textValue="3 - Удовлетворительно">3 - Удовлетворительно</SelectItem>
+                      <SelectItem key="2" value="2" textValue="2 - Неудовлетворительно">2 - Неудовлетворительно</SelectItem>
+                      <SelectItem key="1" value="1" textValue="1 - Неудовлетворительно">1 - Неудовлетворительно</SelectItem>
                     </Select>
                     
                     <Textarea
-                      label="Comment"
-                      placeholder="Add a comment about this grade"
+                      label="Комментарий"
+                      placeholder="Добавьте комментарий к оценке"
                       value={editingGrade.comment}
                       onValueChange={(value) => setEditingGrade({...editingGrade, comment: value})}
                     />
@@ -249,10 +361,11 @@ const TeacherGrades: React.FC = () => {
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
-                  Cancel
+                  Отмена
                 </Button>
-                <Button color="primary" onPress={handleSaveGrade}>
-                  Save Changes
+                <Button color="primary" onPress={handleSaveGrade} 
+                  isDisabled={editingGrade?.id.startsWith('new-') && (!editingGrade.studentId || !editingGrade.subjectId)}>
+                  {editingGrade?.id.startsWith('new-') ? 'Добавить оценку' : 'Сохранить изменения'}
                 </Button>
               </ModalFooter>
             </>

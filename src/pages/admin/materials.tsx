@@ -22,7 +22,8 @@ import {
   Select,
   SelectItem,
   Textarea,
-  Tooltip
+  Tooltip,
+  addToast
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { 
@@ -33,11 +34,15 @@ import {
   getSubjectById,
   getTeacherById
 } from '../../data/mock-data';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminMaterials: React.FC = () => {
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [selectedSubject, setSelectedSubject] = React.useState<string>("all");
   const [selectedType, setSelectedType] = React.useState<string>("all");
+  const [selectedMaterial, setSelectedMaterial] = React.useState<{id: string, title: string, description: string, type: string, subjectId: string, groupIds: string[], uploadDate: string, uploadedBy: string, fileUrl: string} | null>(null);
+  const [materialsData, setMaterialsData] = React.useState(materials);
+  const [recentAction, setRecentAction] = React.useState<{id: string, type: string} | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   
   // Filter materials
@@ -96,6 +101,97 @@ const AdminMaterials: React.FC = () => {
     }
   };
 
+  // Add handlers for CRUD operations
+  const handleAddMaterial = () => {
+    onOpen();
+  };
+  
+  const handleDownloadMaterial = (materialId: string) => {
+    // In a real app, this would download the material
+    console.log("Download material:", materialId);
+    
+    addToast({
+      title: "Загрузка началась",
+      description: "Материал скачивается",
+      color: "primary",
+    });
+  };
+  
+  const handleEditMaterial = (materialId: string) => {
+    // In a real app, this would open a form to edit the material
+    console.log("Edit material:", materialId);
+    
+    addToast({
+      title: "Редактирование материала",
+      description: "Форма редактирования материала открыта",
+      color: "primary",
+    });
+  };
+  
+  const handleDeleteMaterial = (materialId: string) => {
+    setRecentAction({id: materialId, type: 'deleted'});
+    
+    // Delay actual removal to show animation
+    setTimeout(() => {
+      const updatedMaterials = materialsData.filter(m => m.id !== materialId);
+      setMaterialsData(updatedMaterials);
+      
+      addToast({
+        title: "Материал удален",
+        description: "Материал был успешно удален из системы",
+        color: "success",
+      });
+      
+      setRecentAction(null);
+    }, 500);
+  };
+
+  // Add a simple UUID generator function to replace the external package
+  const generateUUID = () => {
+    return Math.random().toString(36).substring(2, 9) + 
+      Date.now().toString(36);
+  };
+  
+  const handleSaveMaterial = () => {
+    // In a real app, this would save to the backend
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    if (selectedMaterial) {
+      // Update existing material
+      const updatedMaterials = materialsData.map(m => 
+        m.id === selectedMaterial.id ? {...selectedMaterial, uploadDate: currentDate} : m
+      );
+      setMaterialsData(updatedMaterials);
+      setRecentAction({id: selectedMaterial.id, type: 'updated'});
+    } else {
+      // Create new material with random ID - using our custom generator
+      const newMaterial = {
+        id: `m-${generateUUID()}`,
+        title: document.querySelector<HTMLInputElement>('input[placeholder="Введите название материала"]')?.value || 'New Material',
+        description: document.querySelector<HTMLTextAreaElement>('textarea[placeholder="Введите описание материала"]')?.value,
+        type: document.querySelector<HTMLSelectElement>('select[aria-label="Тип материала"]')?.value || 'document',
+        subjectId: document.querySelector<HTMLSelectElement>('select[aria-label="Предмет"]')?.value || subjects[0].id,
+        groupIds: [],
+        uploadDate: currentDate,
+        uploadedBy: 'admin',
+        fileUrl: ''
+      };
+      setMaterialsData([newMaterial, ...materialsData]);
+      setRecentAction({id: newMaterial.id, type: 'added'});
+    }
+    
+    onOpenChange(false);
+    
+    addToast({
+      title: "Материал сохранен",
+      description: "Новый материал добавлен в систему",
+      color: "success",
+    });
+    
+    // Clear highlight after animation completes
+    setTimeout(() => setRecentAction(null), 3000);
+  };
+
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -109,7 +205,7 @@ const AdminMaterials: React.FC = () => {
         <Button 
           color="primary" 
           endContent={<Icon icon="lucide:plus" />}
-          onPress={onOpen}
+          onPress={handleAddMaterial}
         >
           Добавить материал
         </Button>
@@ -170,18 +266,27 @@ const AdminMaterials: React.FC = () => {
           <TableBody>
             {filteredMaterials.map((material) => {
               const subject = getSubjectById(material.subjectId);
-              const teacher = getTeacherById(material.uploadedBy);
               const typeInfo = getMaterialTypeInfo(material.type);
+              const isHighlighted = recentAction && recentAction.id === material.id;
               
               return (
-                <TableRow key={material.id}>
+                <TableRow 
+                  key={material.id} 
+                  className={isHighlighted ? 
+                    recentAction?.type === 'deleted' ? 'bg-danger-50' : 
+                    recentAction?.type === 'added' ? 'bg-success-50' : 
+                    'bg-primary-50' : ''
+                  }
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Icon icon={typeInfo.icon} className={`text-${typeInfo.color}`} />
                       <div>
                         <p className="font-medium">{material.title}</p>
                         {material.description && (
-                          <p className="text-xs text-default-500 truncate max-w-[200px]">{material.description}</p>
+                          <p className="text-xs text-default-500 truncate max-w-[200px]">
+                            {material.description}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -192,7 +297,7 @@ const AdminMaterials: React.FC = () => {
                     </Chip>
                   </TableCell>
                   <TableCell>{subject?.name}</TableCell>
-                  <TableCell>{teacher?.name}</TableCell>
+                  <TableCell>{material.uploadedBy}</TableCell>
                   <TableCell>{material.uploadDate}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -209,17 +314,33 @@ const AdminMaterials: React.FC = () => {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Tooltip content="Скачать">
-                        <Button isIconOnly size="sm" variant="light">
+                        <Button 
+                          isIconOnly 
+                          size="sm" 
+                          variant="light"
+                          onPress={() => handleDownloadMaterial(material.id)}
+                        >
                           <Icon icon="lucide:download" className="text-default-500" />
                         </Button>
                       </Tooltip>
                       <Tooltip content="Редактировать">
-                        <Button isIconOnly size="sm" variant="light">
+                        <Button 
+                          isIconOnly 
+                          size="sm" 
+                          variant="light"
+                          onPress={() => handleEditMaterial(material.id)}
+                        >
                           <Icon icon="lucide:edit" className="text-default-500" />
                         </Button>
                       </Tooltip>
                       <Tooltip content="Удалить">
-                        <Button isIconOnly size="sm" variant="light" color="danger">
+                        <Button 
+                          isIconOnly 
+                          size="sm" 
+                          variant="light" 
+                          color="danger"
+                          onPress={() => handleDeleteMaterial(material.id)}
+                        >
                           <Icon icon="lucide:trash-2" />
                         </Button>
                       </Tooltip>
@@ -276,14 +397,14 @@ const AdminMaterials: React.FC = () => {
                   </Select>
                   
                   <Select
-                    label="Группы"
-                    placeholder="Выберите группы"
+                    label="Преподаваемые предметы"
                     selectionMode="multiple"
                     labelPlacement="outside"
+                    aria-label="Выберите преподаваемые предметы"
                   >
-                    {groups.map((group) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.name}
+                    {subjects.map(subject => (
+                      <SelectItem key={subject.id} value={subject.id} textValue={subject.name}>
+                        {subject.name} ({subject.credits} кредитов)
                       </SelectItem>
                     ))}
                   </Select>
@@ -304,7 +425,7 @@ const AdminMaterials: React.FC = () => {
                 <Button color="danger" variant="light" onPress={onClose}>
                   Отмена
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button color="primary" onPress={handleSaveMaterial}>
                   Сохранить
                 </Button>
               </ModalFooter>

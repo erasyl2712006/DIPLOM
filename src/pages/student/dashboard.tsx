@@ -48,9 +48,9 @@ const StudentDashboard: React.FC = () => {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Welcome, {user?.name}</h1>
+        <h1 className="text-2xl font-bold mb-2">Добро пожаловать, {user?.name}</h1>
         <p className="text-default-500">
-          Here's your student dashboard for today, {getDayName(currentDayNumber)}
+          Ваша студенческая панель управления на сегодня, {getDayName(currentDayNumber)}
         </p>
       </div>
 
@@ -58,7 +58,7 @@ const StudentDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="border border-divider">
           <CardBody className="flex flex-col gap-2">
-            <p className="text-default-500">Average Grade</p>
+            <p className="text-default-500">Средний балл</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-bold">{averageGrade.toFixed(1)}</h3>
               <Chip 
@@ -70,10 +70,10 @@ const StudentDashboard: React.FC = () => {
                 }
                 variant="flat"
               >
-                {averageGrade >= 4.5 ? "Excellent" : 
-                 averageGrade >= 3.5 ? "Good" : 
-                 averageGrade >= 2.5 ? "Satisfactory" : 
-                 "Needs Improvement"}
+                {averageGrade >= 4.5 ? "Отлично" : 
+                 averageGrade >= 3.5 ? "Хорошо" : 
+                 averageGrade >= 2.5 ? "Удовлетворительно" : 
+                 "Требует улучшения"}
               </Chip>
             </div>
             <Progress 
@@ -92,7 +92,7 @@ const StudentDashboard: React.FC = () => {
         
         <Card className="border border-divider">
           <CardBody className="flex flex-col gap-2">
-            <p className="text-default-500">Today's Classes</p>
+            <p className="text-default-500">Сегодняшние занятия</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-bold">{todaySchedule.length}</h3>
               <Button 
@@ -103,7 +103,7 @@ const StudentDashboard: React.FC = () => {
                 color="primary"
                 endContent={<Icon icon="lucide:arrow-right" />}
               >
-                View Schedule
+                Расписание
               </Button>
             </div>
           </CardBody>
@@ -111,20 +111,20 @@ const StudentDashboard: React.FC = () => {
         
         <Card className="border border-divider">
           <CardBody className="flex flex-col gap-2">
-            <p className="text-default-500">Assignments Due</p>
+            <p className="text-default-500">Задания</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-bold">2</h3>
-              <Chip color="warning" variant="flat">This Week</Chip>
+              <Chip color="warning" variant="flat">Эта неделя</Chip>
             </div>
           </CardBody>
         </Card>
         
         <Card className="border border-divider">
           <CardBody className="flex flex-col gap-2">
-            <p className="text-default-500">Attendance Rate</p>
+            <p className="text-default-500">Посещаемость</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-bold">95%</h3>
-              <Chip color="success" variant="flat">Good</Chip>
+              <Chip color="success" variant="flat">Хорошо</Chip>
             </div>
             <Progress 
               value={95} 
@@ -141,7 +141,7 @@ const StudentDashboard: React.FC = () => {
         <div className="lg:col-span-2">
           <Card className="border border-divider">
             <CardHeader className="flex justify-between">
-              <h2 className="text-lg font-semibold">Today's Classes</h2>
+              <h2 className="text-lg font-semibold">Сегодняшние занятия</h2>
               <Chip color="primary" variant="flat">{getDayName(currentDayNumber)}</Chip>
             </CardHeader>
             <Divider />
@@ -165,7 +165,7 @@ const StudentDashboard: React.FC = () => {
                             </div>
                             <div>
                               <p className="font-medium">{subject?.name}</p>
-                              <p className="text-default-500 text-sm">{teacher?.name} • Room {entry.roomNumber}</p>
+                              <p className="text-default-500 text-sm">{teacher?.name} • Аудитория {entry.roomNumber}</p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -173,7 +173,7 @@ const StudentDashboard: React.FC = () => {
                               {entry.startTime} - {entry.endTime}
                             </p>
                             {isCurrentClass && (
-                              <Chip color="primary" size="sm">Ongoing</Chip>
+                              <Chip color="primary" size="sm">Сейчас</Chip>
                             )}
                           </div>
                         </div>
@@ -184,7 +184,7 @@ const StudentDashboard: React.FC = () => {
               ) : (
                 <div className="p-6 text-center">
                   <Icon icon="lucide:calendar" className="mx-auto mb-2 text-default-400" width={32} height={32} />
-                  <p className="text-default-500">No classes scheduled for today</p>
+                  <p className="text-default-500">Нет занятий на сегодня</p>
                 </div>
               )}
             </CardBody>
@@ -195,7 +195,7 @@ const StudentDashboard: React.FC = () => {
         <div>
           <Card className="border border-divider">
             <CardHeader className="flex justify-between">
-              <h2 className="text-lg font-semibold">Recent Grades</h2>
+              <h2 className="text-lg font-semibold">Недавние оценки</h2>
               <Button 
                 as={Link}
                 to="/student/grades"
@@ -204,7 +204,7 @@ const StudentDashboard: React.FC = () => {
                 color="primary"
                 endContent={<Icon icon="lucide:arrow-right" />}
               >
-                All Grades
+                Все оценки
               </Button>
             </CardHeader>
             <Divider />
@@ -242,7 +242,7 @@ const StudentDashboard: React.FC = () => {
           {/* Quick Access */}
           <Card className="border border-divider mt-6">
             <CardHeader>
-              <h2 className="text-lg font-semibold">Quick Access</h2>
+              <h2 className="text-lg font-semibold">Быстрый доступ</h2>
             </CardHeader>
             <Divider />
             <CardBody className="py-4 px-2">
@@ -258,7 +258,7 @@ const StudentDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Profile</div>
+                  <div className="mt-2 text-sm">Профиль</div>
                 </Button>
                 
                 <Button 
@@ -272,7 +272,7 @@ const StudentDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Schedule</div>
+                  <div className="mt-2 text-sm">Расписание</div>
                 </Button>
                 
                 <Button 
@@ -286,7 +286,7 @@ const StudentDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Grades</div>
+                  <div className="mt-2 text-sm">Оценки</div>
                 </Button>
                 
                 <Button 
@@ -300,7 +300,7 @@ const StudentDashboard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="mt-2 text-sm">Teachers</div>
+                  <div className="mt-2 text-sm">Преподаватели</div>
                 </Button>
               </div>
             </CardBody>

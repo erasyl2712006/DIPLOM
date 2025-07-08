@@ -11,8 +11,18 @@ import {
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { MainNavbar } from '../components/main-navbar';
+import { addToast } from '@heroui/react';
 
 const HomePage: React.FC = () => {
+  const handleLearnMoreClick = () => {
+    // In a real app, this would navigate to an About page or show detailed content
+    addToast({
+      title: "О нас",
+      description: "Здесь будет страница с дополнительной информацией о колледже",
+      color: "primary",
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <MainNavbar />
@@ -24,7 +34,7 @@ const HomePage: React.FC = () => {
             removeWrapper
             alt="Кампус колледжа"
             className="z-0 w-full h-[500px] object-cover brightness-[0.7]"
-            src="https://img.heroui.chat/image/places?w=1500&h=500&u=1"
+            src="https://avatars.mds.yandex.net/i?id=f2275267c1e7af5e5dab90fa3f3d9752c3b2313f-12718991-images-thumbs&n=13"
           />
         </div>
         
@@ -49,6 +59,7 @@ const HomePage: React.FC = () => {
               variant="bordered" 
               size="lg"
               className="text-white border-white"
+              onPress={handleLearnMoreClick}
             >
               Узнать больше
             </Button>
@@ -143,7 +154,7 @@ const HomePage: React.FC = () => {
                   removeWrapper
                   alt={`Изображение новости ${item}`}
                   className="w-full h-48 object-cover"
-                  src={`https://img.heroui.chat/image/places?w=600&h=400&u=${item+10}`}
+                  src={`https://avatars.mds.yandex.net/i?id=dde67292410e0e6e38533a3d7053c4eef304ed83-4577377-images-thumbs&n=13`}
                 />
                 <CardBody>
                   <h3 className="text-xl font-semibold mb-2">

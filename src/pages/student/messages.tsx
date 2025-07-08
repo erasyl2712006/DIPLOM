@@ -18,20 +18,26 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  useDisclosure
+  useDisclosure,
+  Select,
+  SelectItem
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { 
   messages,
   teachers,
-  getTeacherById
+  getTeacherById,
+  getSubjectById
 } from '../../data/mock-data';
 import { User } from '../../contexts/auth-context';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TypingIndicator } from '../../components/typing-indicator';
 
 const StudentMessages: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [newMessage, setNewMessage] = React.useState<string>("");
+  const [isTyping, setIsTyping] = React.useState<boolean>(false);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   
@@ -79,10 +85,56 @@ const StudentMessages: React.FC = () => {
     // In a real app, this would send the message to the API
     console.log('Sending message:', newMessage);
     
+    // Create a temporary message to show immediately
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      senderId: 'st1',
+      receiverId: selectedConversation,
+      content: newMessage,
+      timestamp: new Date().toISOString(),
+      isRead: true
+    };
+    
+    // Simulate message delivery
+    addToast({
+      title: "Сообщение отправлено",
+      description: "Ваше сообщение успешно отправлено",
+      color: "success",
+    });
+    
     // Clear input
     setNewMessage('');
+    
+    // Simulate teacher typing response after 1-2 seconds
+    setTimeout(() => {
+      setIsTyping(true);
+      
+      // Simulate teacher response after typing
+      setTimeout(() => {
+        setIsTyping(false);
+        // In real app would add message to conversationMessages
+      }, 3000);
+    }, 1000 + Math.random() * 1000);
+  };
+
+  // Handle creating a new message
+  const handleCreateMessage = () => {
+    // In a real app, this would prepare a new message
+    onOpen();
   };
   
+  // Handle sending a new message from the modal
+  const handleSendNewMessage = () => {
+    // In a real app, this would send the new message
+    onOpenChange(false);
+    
+    addToast({
+      title: "Сообщение отправлено",
+      description: "Ваше сообщение успешно отправлено",
+      color: "success",
+    });
+  };
+
   // Format timestamp
   const formatMessageTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -116,7 +168,7 @@ const StudentMessages: React.FC = () => {
                 variant="flat" 
                 size="sm"
                 color="primary"
-                onPress={onOpen}
+                onPress={handleCreateMessage}
               >
                 <Icon icon="lucide:edit" />
               </Button>
@@ -208,23 +260,57 @@ const StudentMessages: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-4">
                 {conversationMessages.length > 0 ? (
                   <div className="space-y-4">
-                    {conversationMessages.map(msg => {
-                      const isCurrentUser = msg.senderId === 'st1';
-                      
-                      return (
-                        <div 
-                          key={msg.id} 
-                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`max-w-[70%] ${isCurrentUser ? 'bg-primary-100' : 'bg-content2'} rounded-lg p-3`}>
-                            <p>{msg.content}</p>
-                            <p className="text-xs text-default-400 text-right mt-1">
-                              {formatMessageTime(msg.timestamp)}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <AnimatePresence initial={false}>
+                      {conversationMessages.map(msg => {
+                        const isCurrentUser = msg.senderId === 'st1';
+                        
+                        return (
+                          <motion.div 
+                            key={msg.id} 
+                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 30,
+                              opacity: { duration: 0.2 }
+                            }}
+                          >
+                            <motion.div 
+                              className={`max-w-[70%] ${isCurrentUser ? 'bg-primary-100' : 'bg-content2'} rounded-lg p-3`}
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <p>{msg.content}</p>
+                              <p className="text-xs text-default-400 text-right mt-1">
+                                {formatMessageTime(msg.timestamp)}
+                                {isCurrentUser && msg.id.startsWith('temp-') && (
+                                  <span className="ml-2 text-primary-500">
+                                    <Icon icon="lucide:check" width={12} />
+                                  </span>
+                                )}
+                              </p>
+                            </motion.div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                    
+                    {/* Typing indicator */}
+                    {isTyping && (
+                      <motion.div 
+                        className="flex justify-start"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                      >
+                        <TypingIndicator />
+                      </motion.div>
+                    )}
+                    
                     <div ref={messagesEndRef} />
                   </div>
                 ) : (
@@ -287,9 +373,10 @@ const StudentMessages: React.FC = () => {
                 <Select
                   label="Получатель"
                   placeholder="Выберите преподавателя"
+                  aria-label="Выберите получателя сообщения"
                 >
                   {teachers.map(teacher => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
+                    <SelectItem key={teacher.id} value={teacher.id} textValue={teacher.name}>
                       {teacher.name}
                     </SelectItem>
                   ))}
@@ -298,13 +385,14 @@ const StudentMessages: React.FC = () => {
                   label="Сообщение"
                   placeholder="Введите текст сообщения"
                   minRows={3}
+                  aria-label="Текст сообщения"
                 />
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
                   Отмена
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button color="primary" onPress={handleSendNewMessage}>
                   Отправить
                 </Button>
               </ModalFooter>

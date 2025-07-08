@@ -6,13 +6,13 @@ import {
   Divider,
   Button,
   Input,
+  Avatar,
   Table,
   TableHeader,
   TableColumn,
   TableBody,
   TableRow,
   TableCell,
-  Avatar,
   Chip,
   Select,
   SelectItem,
@@ -22,17 +22,20 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  addToast,
   Textarea
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { 
-  scheduleEntries,
-  students,
+  students, 
   attendanceRecords,
-  getSubjectById,
+  getStudentById,
   getGroupById,
-  getStudentById
+  getSubjectById,
+  getScheduleEntryById,
+  scheduleEntries
 } from '../../data/mock-data';
+import { motion } from 'framer-motion';
 
 const TeacherAttendance: React.FC = () => {
   const [selectedDate, setSelectedDate] = React.useState<string>(new Date().toISOString().split('T')[0]);
@@ -80,8 +83,40 @@ const TeacherAttendance: React.FC = () => {
   
   // Handle status change
   const handleStatusChange = (studentId: string, status: string) => {
+    // Save the previous status for the student to allow for visual comparison
+    const previousStatus = classAttendance[studentId] || 'present';
+    
     // In a real app, this would update the backend
-    console.log(`Changing status for student ${studentId} to ${status}`);
+    console.log(`Changing status for student ${studentId} from ${previousStatus} to ${status}`);
+    
+    // Update the UI immediately for responsiveness
+    const updatedAttendance = {...classAttendance};
+    updatedAttendance[studentId] = status;
+    
+    // Simulate the status change with animation
+    const statusCell = document.querySelector(`[data-student-id="${studentId}"]`);
+    if (statusCell) {
+      statusCell.classList.add('bg-primary-50');
+      setTimeout(() => {
+        statusCell.classList.remove('bg-primary-50');
+      }, 1000);
+    }
+    
+    addToast({
+      title: "Статус обновлен",
+      description: "Посещаемость студента успешно обновлена",
+      color: "success",
+    });
+  };
+
+  const handleMarkAllAttendance = () => {
+    onClose();
+    
+    addToast({
+      title: "Посещаемость обновлена",
+      description: "Статус посещаемости для всех студентов обновлен",
+      color: "success",
+    });
   };
 
   return (
@@ -155,7 +190,7 @@ const TeacherAttendance: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>{group?.name}</TableCell>
-                      <TableCell>
+                      <TableCell data-student-id={student.id} className="transition-colors duration-500">
                         <Select
                           size="sm"
                           selectedKeys={[status]}
@@ -165,12 +200,8 @@ const TeacherAttendance: React.FC = () => {
                           }}
                         >
                           {statusOptions.map((option) => (
-                            <SelectItem key={option.key} value={option.key}>
-                              <div className="flex items-center gap-2">
-                                <Chip size="sm" color={option.color as any} variant="dot">
-                                  {option.label}
-                                </Chip>
-                              </div>
+                            <SelectItem key={option.key} textValue={option.label}>
+                              {option.label}
                             </SelectItem>
                           ))}
                         </Select>
@@ -213,7 +244,7 @@ const TeacherAttendance: React.FC = () => {
                   defaultSelectedKeys={["present"]}
                 >
                   {statusOptions.map((option) => (
-                    <SelectItem key={option.key} value={option.key}>
+                    <SelectItem key={option.key}>
                       {option.label}
                     </SelectItem>
                   ))}
@@ -229,7 +260,7 @@ const TeacherAttendance: React.FC = () => {
                 <Button color="danger" variant="light" onPress={onClose}>
                   Отмена
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button color="primary" onPress={handleMarkAllAttendance}>
                   Применить
                 </Button>
               </ModalFooter>

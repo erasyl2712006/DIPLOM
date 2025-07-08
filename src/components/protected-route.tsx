@@ -1,49 +1,47 @@
 import React from 'react';
 import { Route, Redirect, RouteProps } from 'react-router-dom';
-import { useAuth, UserRole } from '../contexts/auth-context';
+import { useAuth } from '../contexts/auth-context';
 
-interface ProtectedRouteProps extends Omit<RouteProps, 'component'> {
-  roles?: UserRole[];
-  children: React.ReactNode;
+interface ProtectedRouteProps extends RouteProps {
+  component: React.ComponentType<any>;
+  role?: string;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  roles = [], 
-  children, 
-  ...rest 
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  component: Component,
+  role,
+  ...rest
 }) => {
-  const { isAuthenticated, user } = useAuth();
-
+  const { user, isAuthenticated } = useAuth();
+  
+  console.log("Protected route:", { isAuthenticated, userRole: user?.role, requiredRole: role });
+  
   return (
     <Route
       {...rest}
-      render={({ location }) => {
-        // Not authenticated
+      render={(props) => {
+        // Not logged in, redirect to login
         if (!isAuthenticated) {
+          console.log("User not authenticated, redirecting to login");
           return (
-            <Redirect
-              to={{
-                pathname: "/login",
-                state: { from: location }
-              }}
+            <Redirect 
+              to={{ 
+                pathname: '/login', 
+                state: { from: props.location } 
+              }} 
             />
           );
         }
         
-        // No specific roles required or user has required role
-        if (roles.length === 0 || (user && roles.includes(user.role))) {
-          return children;
+        // Wrong role, redirect to home
+        if (role && user?.role !== role) {
+          console.log("Wrong role, redirecting to home");
+          return <Redirect to="/" />;
         }
         
-        // User doesn't have required role
-        return (
-          <Redirect
-            to={{
-              pathname: "/",
-              state: { from: location }
-            }}
-          />
-        );
+        // Authenticated and correct role, render component
+        console.log("Rendering protected component");
+        return <Component {...props} />;
       }}
     />
   );

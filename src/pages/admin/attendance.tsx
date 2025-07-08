@@ -20,7 +20,8 @@ import {
   Select,
   SelectItem,
   Tabs,
-  Tab
+  Tab,
+  addToast
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { 
@@ -100,6 +101,15 @@ const AdminAttendance: React.FC = () => {
     }
   };
 
+  const handleBulkUpdateAttendance = () => {
+    // In a real app, this would update attendance status for all students
+    addToast({
+      title: "Посещаемость обновлена",
+      description: "Массовое обновление посещаемости выполнено",
+      color: "success",
+    });
+  };
+
   return (
     <div className="w-full">
       <div className="mb-6">
@@ -116,10 +126,11 @@ const AdminAttendance: React.FC = () => {
               label="Студент"
               selectedKeys={[selectedStudent]}
               onChange={(e) => setSelectedStudent(e.target.value)}
+              aria-label="Выберите студента"
             >
-              <SelectItem key="all" value="all">Все студенты</SelectItem>
+              <SelectItem key="all" value="all" textValue="Все студенты">Все студенты</SelectItem>
               {students.map((student) => (
-                <SelectItem key={student.id} value={student.id}>
+                <SelectItem key={student.id} value={student.id} textValue={student.name}>
                   {student.name}
                 </SelectItem>
               ))}
@@ -129,12 +140,13 @@ const AdminAttendance: React.FC = () => {
               label="Статус"
               selectedKeys={[selectedStatus]}
               onChange={(e) => setSelectedStatus(e.target.value)}
+              aria-label="Выберите статус"
             >
-              <SelectItem key="all" value="all">Все статусы</SelectItem>
-              <SelectItem key="present" value="present">Присутствует</SelectItem>
-              <SelectItem key="absent" value="absent">Отсутствует</SelectItem>
-              <SelectItem key="late" value="late">Опоздал</SelectItem>
-              <SelectItem key="excused" value="excused">Уважительная причина</SelectItem>
+              <SelectItem key="all" value="all" textValue="Все статусы">Все статусы</SelectItem>
+              <SelectItem key="present" value="present" textValue="Присутствует">Присутствует</SelectItem>
+              <SelectItem key="absent" value="absent" textValue="Отсутствует">Отсутствует</SelectItem>
+              <SelectItem key="late" value="late" textValue="Опоздал">Опоздал</SelectItem>
+              <SelectItem key="excused" value="excused" textValue="Уважительная причина">Уважительная причина</SelectItem>
             </Select>
             
             <Input
@@ -203,6 +215,9 @@ const AdminAttendance: React.FC = () => {
           <div className="flex justify-end mt-6">
             <Button color="primary" endContent={<Icon icon="lucide:download" />}>
               Экспорт данных
+            </Button>
+            <Button color="primary" size="sm" onPress={handleBulkUpdateAttendance}>
+              Отметить всех
             </Button>
           </div>
         </Tab>

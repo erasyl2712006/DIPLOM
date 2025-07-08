@@ -24,7 +24,8 @@ import {
   ModalFooter,
   useDisclosure,
   Select,
-  SelectItem
+  SelectItem,
+  addToast
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { 
@@ -54,6 +55,20 @@ const AdminSchedules: React.FC = () => {
     { key: '6', label: 'Суббота' },
     { key: '0', label: 'Воскресенье' },
   ];
+
+  // Get status label in Russian
+  const getDayRussianName = (dayNumber: number) => {
+    switch (dayNumber) {
+      case 0: return "Воскресенье";
+      case 1: return "Понедельник";
+      case 2: return "Вторник";
+      case 3: return "Среда";
+      case 4: return "Четверг";
+      case 5: return "Пятница";
+      case 6: return "Суббота";
+      default: return "";
+    }
+  };
   
   // Filter schedules
   const filteredSchedules = React.useMemo(() => {
@@ -91,6 +106,45 @@ const AdminSchedules: React.FC = () => {
     });
   }, [selectedDay, searchQuery]);
 
+  // Add handlers for CRUD operations
+  const handleAddSchedule = () => {
+    onOpen();
+  };
+  
+  const handleEditSchedule = (scheduleId: string) => {
+    // In a real app, this would open a form to edit the schedule
+    console.log("Edit schedule:", scheduleId);
+    
+    addToast({
+      title: "Редактирование расписания",
+      description: "Форма редактирования расписания открыта",
+      color: "primary",
+    });
+  };
+  
+  const handleDeleteSchedule = (scheduleId: string) => {
+    // In a real app, this would show a confirmation dialog and then delete the schedule entry
+    console.log("Delete schedule:", scheduleId);
+    
+    addToast({
+      title: "Запись расписания удалена",
+      description: "Запись была успешно удалена из расписания",
+      color: "success",
+    });
+  };
+  
+  const handleSaveSchedule = () => {
+    // In a real app, this would save the new schedule entry
+    console.log("Save schedule");
+    onOpenChange(false);
+    
+    addToast({
+      title: "Расписание сохранено",
+      description: "Новая запись добавлена в расписание",
+      color: "success",
+    });
+  };
+
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -104,7 +158,7 @@ const AdminSchedules: React.FC = () => {
         <Button 
           color="primary" 
           endContent={<Icon icon="lucide:plus" />}
-          onPress={onOpen}
+          onPress={handleAddSchedule}
         >
           Добавить занятие
         </Button>
@@ -116,9 +170,10 @@ const AdminSchedules: React.FC = () => {
             label="День недели"
             selectedKeys={[selectedDay]}
             onChange={(e) => setSelectedDay(e.target.value)}
+            aria-label="Фильтр по дню недели"
           >
             {days.map((day) => (
-              <SelectItem key={day.key} value={day.key}>
+              <SelectItem key={day.key} value={day.key} textValue={day.label}>
                 {day.label}
               </SelectItem>
             ))}
@@ -156,7 +211,7 @@ const AdminSchedules: React.FC = () => {
             <TableColumn>АУДИТОРИЯ</TableColumn>
             <TableColumn width={100}>ДЕЙСТВИЯ</TableColumn>
           </TableHeader>
-          <TableBody>
+          <TableBody emptyContent="Нет доступного расписания">
             {filteredSchedules.map((entry) => {
               const subject = getSubjectById(entry.subjectId);
               const teacher = getTeacherById(entry.teacherId);
@@ -166,7 +221,7 @@ const AdminSchedules: React.FC = () => {
                 <TableRow key={entry.id}>
                   <TableCell>
                     <Chip color="primary" variant="flat" size="sm">
-                      {getDayName(entry.dayOfWeek)}
+                      {getDayRussianName(entry.dayOfWeek)}
                     </Chip>
                   </TableCell>
                   <TableCell>{entry.startTime} - {entry.endTime}</TableCell>
@@ -176,10 +231,21 @@ const AdminSchedules: React.FC = () => {
                   <TableCell>{entry.roomNumber}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button isIconOnly size="sm" variant="light">
+                      <Button 
+                        isIconOnly 
+                        size="sm" 
+                        variant="light"
+                        onPress={() => handleEditSchedule(entry.id)}
+                      >
                         <Icon icon="lucide:edit" className="text-default-500" />
                       </Button>
-                      <Button isIconOnly size="sm" variant="light" color="danger">
+                      <Button 
+                        isIconOnly 
+                        size="sm" 
+                        variant="light" 
+                        color="danger"
+                        onPress={() => handleDeleteSchedule(entry.id)}
+                      >
                         <Icon icon="lucide:trash-2" />
                       </Button>
                     </div>
@@ -269,7 +335,7 @@ const AdminSchedules: React.FC = () => {
                 <Button color="danger" variant="light" onPress={onClose}>
                   Отмена
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button color="primary" onPress={handleSaveSchedule}>
                   Сохранить
                 </Button>
               </ModalFooter>

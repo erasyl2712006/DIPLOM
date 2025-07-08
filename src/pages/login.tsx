@@ -30,8 +30,20 @@ const LoginPage: React.FC = () => {
   
   const from = location.state?.from?.pathname || '/';
   
+  // Enhance login handler to validate fields
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Simple validation
+    if (!password.trim()) {
+      addToast({
+        title: "Ошибка входа",
+        description: "Пожалуйста, введите пароль",
+        color: "danger",
+      });
+      return;
+    }
+    
     try {
       // Fill in predefined email based on selected role for demo purposes
       let demoEmail = '';
@@ -67,7 +79,7 @@ const LoginPage: React.FC = () => {
                 height={32}
               />
             </div>
-            <h1 className="text-2xl font-bold text-center">Вход в систему</h1>
+            <h1 className="text-2xl font-bold text-center">Вход в систему колледжа</h1>
             
             <div className="w-full">
               <Tabs 
@@ -133,7 +145,7 @@ const LoginPage: React.FC = () => {
           
           <CardFooter className="flex flex-col">
             <p className="text-center text-small text-default-500">
-              Для демонстрации нажмите "Войти" с любым паролем.
+              Для демонстрации просто нажмите "Войти" с любым паролем.
             </p>
           </CardFooter>
         </Card>

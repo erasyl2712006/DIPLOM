@@ -25,21 +25,21 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType);
 const mockUsers: User[] = [
   {
     id: '1',
-    name: 'Admin User',
+    name: 'Администратор',
     email: 'admin@college.edu',
     role: 'admin',
     avatar: 'https://img.heroui.chat/image/avatar?w=200&h=200&u=1'
   },
   {
     id: '2',
-    name: 'Teacher User',
+    name: 'Преподаватель',
     email: 'teacher@college.edu',
     role: 'teacher',
     avatar: 'https://img.heroui.chat/image/avatar?w=200&h=200&u=2'
   },
   {
     id: '3',
-    name: 'Student User',
+    name: 'Студент',
     email: 'student@college.edu',
     role: 'student',
     avatar: 'https://img.heroui.chat/image/avatar?w=200&h=200&u=3'
@@ -58,33 +58,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Updated login function to properly handle role-based login
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const foundUser = mockUsers.find(u => u.email === email);
+      if (!email) {
+        throw new Error('Email is required');
+      }
       
-      if (!foundUser) {
-        throw new Error('Invalid credentials');
+      // Normalize email by trimming whitespace and converting to lowercase
+      const normalizedEmail = email.trim().toLowerCase();
+      
+      // Allow login with simplified role names for demo
+      let userToLogin;
+      
+      // Check if it's one of our special role keywords
+      if (normalizedEmail === 'admin' || normalizedEmail === 'teacher' || normalizedEmail === 'student') {
+        userToLogin = mockUsers.find(u => u.role === normalizedEmail);
+      } else {
+        // Normal email login - also case insensitive
+        userToLogin = mockUsers.find(u => u.email.toLowerCase() === normalizedEmail);
+      }
+      
+      if (!userToLogin) {
+        throw new Error('Пользователь не найден');
       }
       
       // In a real app, you would validate the password here
+      // For demo, we'll allow any non-empty password
+      if (!password.trim()) {
+        throw new Error('Пароль обязателен');
+      }
       
-      setUser(foundUser);
-      localStorage.setItem('user', JSON.stringify(foundUser));
+      setUser(userToLogin);
+      localStorage.setItem('user', JSON.stringify(userToLogin));
       
       addToast({
-        title: 'Login successful',
-        description: `Welcome back, ${foundUser.name}`,
+        title: 'Вход выполнен успешно',
+        description: `Добро пожаловать, ${userToLogin.name}`,
         color: 'success',
       });
     } catch (error) {
       console.error('Login error:', error);
       addToast({
-        title: 'Login failed',
-        description: 'Invalid email or password',
+        title: 'Ошибка входа',
+        description: error instanceof Error ? error.message : 'Неверный email или пароль',
         color: 'danger',
       });
       throw error;
@@ -97,8 +118,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('user');
     addToast({
-      title: 'Logged out',
-      description: 'You have been successfully logged out',
+      title: 'Выход выполнен',
+      description: 'Вы успешно вышли из системы',
     });
   };
 

@@ -22,11 +22,16 @@ const AdminSettings: React.FC = () => {
   const [allowStudentRegistration, setAllowStudentRegistration] = React.useState<boolean>(false);
   const [maintenanceMode, setMaintenanceMode] = React.useState<boolean>(false);
   
-  // Handle form submission
+  // Add save settings functionality
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Saving settings...");
-    // Here you would normally save the settings to your backend
+    
+    addToast({
+      title: "Настройки сохранены",
+      description: "Изменения успешно сохранены",
+      color: "success",
+    });
   };
 
   return (

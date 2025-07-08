@@ -14,8 +14,13 @@ import { Icon } from '@iconify/react';
 import { 
   getTeacherSchedule, 
   getDayName, 
+  students, 
+  attendanceRecords,
+  getStudentById,
+  getGroupById,
   getSubjectById,
-  getGroupById
+  getScheduleEntryById,
+  scheduleEntries
 } from '../../data/mock-data';
 
 const TeacherSchedule: React.FC = () => {
@@ -23,13 +28,13 @@ const TeacherSchedule: React.FC = () => {
   
   // Days of the week
   const days = [
-    { key: '1', label: 'Monday' },
-    { key: '2', label: 'Tuesday' },
-    { key: '3', label: 'Wednesday' },
-    { key: '4', label: 'Thursday' },
-    { key: '5', label: 'Friday' },
-    { key: '6', label: 'Saturday' },
-    { key: '0', label: 'Sunday' },
+    { key: '1', label: 'Понедельник' },
+    { key: '2', label: 'Вторник' },
+    { key: '3', label: 'Среда' },
+    { key: '4', label: 'Четверг' },
+    { key: '5', label: 'Пятница' },
+    { key: '6', label: 'Суббота' },
+    { key: '0', label: 'Воскресенье' },
   ];
 
   // Get schedule for the selected day
@@ -55,9 +60,9 @@ const TeacherSchedule: React.FC = () => {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Schedule</h1>
+        <h1 className="text-2xl font-bold mb-2">Моё расписание</h1>
         <p className="text-default-500">
-          Manage and view your teaching schedule
+          Просмотр вашего еженедельного расписания занятий
         </p>
       </div>
 
@@ -70,16 +75,16 @@ const TeacherSchedule: React.FC = () => {
           tabContent: "group-data-[selected=true]:text-primary"
         }}
       >
-        <Tab key="daily" title="Daily View">
+        <Tab key="daily" title="Ежедневное представление">
           <div className="flex justify-between items-center mb-6">
             <Select
-              label="Select Day"
+              label="Выберите день"
               className="max-w-xs"
               selectedKeys={[selectedDay]}
               onChange={(e) => setSelectedDay(e.target.value)}
             >
               {days.map((day) => (
-                <SelectItem key={day.key} value={day.key}>
+                <SelectItem key={day.key}>
                   {day.label}
                 </SelectItem>
               ))}
@@ -89,7 +94,7 @@ const TeacherSchedule: React.FC = () => {
           <Card className="border border-divider">
             <CardHeader className="flex justify-between">
               <h2 className="text-lg font-semibold">
-                Classes for {days.find(d => d.key === selectedDay)?.label}
+                Занятия на {days.find(d => d.key === selectedDay)?.label}
               </h2>
             </CardHeader>
             <Divider />
@@ -109,7 +114,7 @@ const TeacherSchedule: React.FC = () => {
                             </div>
                             <div>
                               <p className="font-medium">{subject?.name}</p>
-                              <p className="text-default-500 text-sm">{group?.name} • Room {entry.roomNumber}</p>
+                              <p className="text-default-500 text-sm">Группа {group?.name} • Аудитория {entry.roomNumber}</p>
                             </div>
                           </div>
                           <div className="text-left sm:text-right">
@@ -120,7 +125,7 @@ const TeacherSchedule: React.FC = () => {
                               </p>
                             </div>
                             <p className="text-default-500 text-sm">
-                              {subject?.credits} credits
+                              {subject?.credits} кредитов
                             </p>
                           </div>
                         </div>
@@ -131,21 +136,21 @@ const TeacherSchedule: React.FC = () => {
               ) : (
                 <div className="p-6 text-center">
                   <Icon icon="lucide:calendar-off" className="mx-auto mb-2 text-default-400" width={32} height={32} />
-                  <p className="text-default-500">No classes scheduled for this day</p>
+                  <p className="text-default-500">Нет занятий на этот день</p>
                 </div>
               )}
             </CardBody>
           </Card>
         </Tab>
         
-        <Tab key="weekly" title="Weekly View">
+        <Tab key="weekly" title="Еженедельное представление">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {days.map((day) => (
               <Card key={day.key} className="border border-divider">
                 <CardHeader className="flex justify-between">
                   <h2 className="text-lg font-semibold">{day.label}</h2>
                   <Chip color="primary" variant="flat" size="sm">
-                    {weekSchedule[day.key].length} Classes
+                    {weekSchedule[day.key].length} занятий
                   </Chip>
                 </CardHeader>
                 <Divider />
@@ -162,7 +167,7 @@ const TeacherSchedule: React.FC = () => {
                               <div>
                                 <p className="font-medium">{subject?.name}</p>
                                 <p className="text-default-500 text-xs">
-                                  {group?.name} • Room {entry.roomNumber}
+                                  Группа {group?.name} • Аудитория {entry.roomNumber}
                                 </p>
                               </div>
                               <p className="text-sm">
@@ -175,7 +180,7 @@ const TeacherSchedule: React.FC = () => {
                     </ul>
                   ) : (
                     <div className="p-4 text-center">
-                      <p className="text-default-500 text-sm">No classes</p>
+                      <p className="text-default-500 text-sm">Нет занятий</p>
                     </div>
                   )}
                 </CardBody>
