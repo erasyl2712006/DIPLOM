@@ -32,13 +32,24 @@ import {
 } from '../../data/mock-data';
 import { User } from '../../contexts/auth-context';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  getFromLocalStorage,
+  saveToLocalStorage
+} from '../../data/local-storage';
 
 const TeacherMessages: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [newMessage, setNewMessage] = React.useState<string>("");
+  const [messagesData, setMessagesData] = React.useState(messages);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  
+  // Load messages from localStorage on component mount
+  React.useEffect(() => {
+    const savedMessages = getFromLocalStorage<typeof messages>('messages', messages);
+    setMessagesData(savedMessages);
+  }, []);
   
   // Filter students by search query
   const filteredStudents = React.useMemo(() => {
@@ -56,13 +67,13 @@ const TeacherMessages: React.FC = () => {
   const conversationMessages = React.useMemo(() => {
     if (!selectedConversation) return [];
     
-    return messages
+    return messagesData
       .filter(msg => 
         (msg.senderId === 't1' && msg.receiverId === selectedConversation) || 
         (msg.senderId === selectedConversation && msg.receiverId === 't1')
       )
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }, [selectedConversation]);
+  }, [selectedConversation, messagesData]);
   
   // Get selected student
   const selectedStudent = React.useMemo(() => {
@@ -82,12 +93,9 @@ const TeacherMessages: React.FC = () => {
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
     
-    // In a real app, this would send the message to the API
-    console.log('Sending message:', newMessage);
-    
-    // Create a temporary message to show immediately
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
+    // Create a new message object
+    const newMessageObj = {
+      id: `msg-${Date.now()}`,
       senderId: 't1',
       receiverId: selectedConversation,
       content: newMessage,
@@ -95,10 +103,14 @@ const TeacherMessages: React.FC = () => {
       isRead: true
     };
     
-    // Add the temporary message to the UI
-    const updatedMessages = [...conversationMessages, tempMessage];
+    // Update state with the new message
+    const updatedMessages = [...messagesData, newMessageObj];
+    setMessagesData(updatedMessages);
     
-    // Simulate sending the message
+    // Save to localStorage
+    saveToLocalStorage('messages', updatedMessages);
+    
+    // Show success toast
     addToast({
       title: "Сообщение отправлено",
       description: "Ваше сообщение успешно отправлено",

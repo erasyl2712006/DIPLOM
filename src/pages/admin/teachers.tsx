@@ -31,6 +31,13 @@ import { teachers, subjects, getSubjectById } from '../../data/mock-data';
 import { Teacher } from '../../data/mock-data';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimationWrapper } from '../../components/animation-wrapper';
+import { 
+  getFromLocalStorage, 
+  saveToLocalStorage, 
+  updateCollectionItem, 
+  addCollectionItem, 
+  removeCollectionItem 
+} from '../../data/local-storage';
 
 // Add a custom UUID generator function
 const generateUUID = () => {
@@ -53,6 +60,12 @@ const AdminTeachers: React.FC = () => {
   const [recentlyChanged, setRecentlyChanged] = React.useState<Record<string, string>>({});
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
 
+  // Initialize teachers data from localStorage or fall back to mock data
+  React.useEffect(() => {
+    const savedTeachers = getFromLocalStorage<Teacher[]>('teachers', teachers);
+    setTeachersData(savedTeachers);
+  }, []);
+
   // Filter teachers based on search query
   const filteredTeachers = React.useMemo(() => {
     if (!searchQuery.trim()) return teachersData;
@@ -70,11 +83,11 @@ const AdminTeachers: React.FC = () => {
 
   // Handle teacher selection for details view
   const handleTeacherSelect = (teacher: Teacher) => {
-    setSelectedTeacher(teacher);
+    setSelectedTeacher({...teacher});
     onOpen();
   };
 
-  // Add handlers for CRUD operations
+  // Add handlers for CRUD operations with localStorage persistence
   const handleAddTeacher = () => {
     setSelectedTeacher(null);
     setNewTeacher({
@@ -89,45 +102,31 @@ const AdminTeachers: React.FC = () => {
   };
   
   const handleEditTeacher = (teacherId: string) => {
-    const teacher = teachers.find(t => t.id === teacherId);
+    const teacher = teachersData.find(t => t.id === teacherId);
     if (teacher) {
-      setSelectedTeacher(teacher);
+      setSelectedTeacher({...teacher});
       onOpen();
     }
   };
   
-  // Add save functionality with dynamic update
-  const handleSaveTeacher = () => {
-    if (selectedTeacher) {
-      // Update existing teacher
-      const updatedTeachers = teachersData.map(t => 
-        t.id === selectedTeacher.id ? selectedTeacher : t
-      );
+  // Delete teacher with localStorage persistence
+  const handleDeleteTeacher = (teacherId: string) => {
+    setRecentlyChanged({ [teacherId]: 'deleted' });
+    
+    // Update localStorage and state with delay for animation
+    setTimeout(() => {
+      const updatedTeachers = removeCollectionItem('teachers', teacherId, teachers);
       setTeachersData(updatedTeachers);
-      setRecentlyChanged({ [selectedTeacher.id]: 'updated' });
-    } else {
-      // Add new teacher - use generateUUID instead of uuidv4
-      const newTeacherWithId = {
-        ...newTeacher,
-        id: `t-${generateUUID()}`,
-        avatar: `https://img.heroui.chat/image/avatar?w=200&h=200&u=${Math.floor(Math.random() * 100)}`
-      };
-      setTeachersData([newTeacherWithId, ...teachersData]);
-      setRecentlyChanged({ [newTeacherWithId.id]: 'added' });
-    }
-    
-    onClose();
-    
-    addToast({
-      title: selectedTeacher ? "Преподаватель обновлен" : "Преподаватель добавлен",
-      description: selectedTeacher 
-        ? "Данные преподавателя успешно обновлены" 
-        : "Новый преподаватель успешно добавлен в систему",
-      color: "success",
-    });
-    
-    // Clear change indicator after 3 seconds
-    setTimeout(() => setRecentlyChanged({}), 3000);
+      
+      addToast({
+        title: "Преподаватель удален",
+        description: "Преподаватель был успешно удален из системы",
+        color: "success",
+      });
+      
+      // Clear after animation completes
+      setRecentlyChanged({});
+    }, 300);
   };
 
   // Add form change handlers
@@ -145,21 +144,44 @@ const AdminTeachers: React.FC = () => {
     }
   };
 
-  // Delete teacher function with animation
-  const handleDeleteTeacher = (teacherId: string) => {
-    setRecentlyChanged({ [teacherId]: 'deleted' });
-    
-    // Delay actual removal to allow animation to play
-    setTimeout(() => {
-      const updatedTeachers = teachersData.filter(t => t.id !== teacherId);
-      setTeachersData(updatedTeachers);
+  // Save teacher with localStorage persistence
+  const handleSaveTeacher = () => {
+    if (selectedTeacher) {
+      // Update existing teacher
+      const updatedTeachers = updateCollectionItem<Teacher>(
+        'teachers', 
+        selectedTeacher.id, 
+        selectedTeacher, 
+        teachers
+      );
       
-      addToast({
-        title: "Преподаватель удален",
-        description: "Преподаватель был успешно удален из системы",
-        color: "success",
-      });
-    }, 300);
+      setTeachersData(updatedTeachers);
+      setRecentlyChanged({ [selectedTeacher.id]: 'updated' });
+    } else {
+      // Add new teacher with generated ID
+      const newTeacherWithId = {
+        ...newTeacher,
+        id: `t-${generateUUID()}`,
+        avatar: `https://img.heroui.chat/image/avatar?w=200&h=200&u=${Math.floor(Math.random() * 100)}`
+      } as Teacher;
+      
+      const updatedTeachers = addCollectionItem('teachers', newTeacherWithId, teachers);
+      setTeachersData(updatedTeachers);
+      setRecentlyChanged({ [newTeacherWithId.id]: 'added' });
+    }
+    
+    onClose();
+    
+    addToast({
+      title: selectedTeacher ? "Преподаватель обновлен" : "Преподаватель добавлен",
+      description: selectedTeacher 
+        ? "Данные преподавателя успешно обновлены" 
+        : "Новый преподаватель успешно добавлен в систему",
+      color: "success",
+    });
+    
+    // Clear change indicator after 3 seconds
+    setTimeout(() => setRecentlyChanged({}), 3000);
   };
 
   // Render teacher subjects as chips

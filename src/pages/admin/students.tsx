@@ -33,8 +33,21 @@ import {
   addToast
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { students, getGroupById, getStudentGrades, getSubjectById } from '../../data/mock-data';
+import { 
+  students, 
+  getGroupById, 
+  getStudentGrades, 
+  getSubjectById,
+  subjects
+} from '../../data/mock-data';
 import { ChangeIndicator } from '../../components/change-indicator';
+import { 
+  getFromLocalStorage, 
+  saveToLocalStorage, 
+  updateCollectionItem, 
+  addCollectionItem, 
+  removeCollectionItem 
+} from '../../data/local-storage';
 
 // Add missing Student type definition
 interface Student {
@@ -69,6 +82,11 @@ const AdminStudents: React.FC = () => {
   });
   const [studentsData, setStudentsData] = React.useState(students);
   const [recentlyChanged, setRecentlyChanged] = React.useState<Record<string, string>>({});
+  const [newGrade, setNewGrade] = React.useState({
+    subjectId: '',
+    grade: 0,
+    comment: ''
+  });
 
   // Add missing groupIds definition
   const groupIds = React.useMemo(() => {
@@ -88,13 +106,19 @@ const AdminStudents: React.FC = () => {
     );
   }, [searchQuery, studentsData]);
 
+  // Initialize students data from localStorage or fall back to mock data
+  React.useEffect(() => {
+    const savedStudents = getFromLocalStorage<Student[]>('students', students);
+    setStudentsData(savedStudents);
+  }, []);
+
   // Handle student selection for details view
   const handleStudentSelect = (student: Student) => {
-    setSelectedStudent(student);
+    setSelectedStudent({...student});
     onOpen();
   };
 
-  // Add handlers for CRUD operations
+  // Add handlers for CRUD operations with localStorage persistence
   const handleAddStudent = () => {
     setSelectedStudent(null);
     setNewStudent({
@@ -115,25 +139,29 @@ const AdminStudents: React.FC = () => {
   };
   
   const handleEditStudent = (studentId: string) => {
-    // In a real app, this would open a form to edit the student
-    console.log("Edit student:", studentId);
-    
-    addToast({
-      title: "Редактирование студента",
-      description: "Форма редактирования студента открыта",
-      color: "primary",
-    });
+    const student = studentsData.find(s => s.id === studentId);
+    if (student) {
+      setSelectedStudent({...student});
+      onOpen();
+    }
   };
   
   const handleDeleteStudent = (studentId: string) => {
-    // In a real app, this would show a confirmation dialog and then delete the student
-    console.log("Delete student:", studentId);
+    // Update in localStorage and state
+    const updatedStudents = removeCollectionItem('students', studentId, students);
+    setStudentsData(updatedStudents);
+    
+    // Show success toast
+    setRecentlyChanged({ [studentId]: 'deleted' });
     
     addToast({
       title: "Студент удален",
       description: "Студент был успешно удален из системы",
       color: "success",
     });
+    
+    // Clear change indicator after 3 seconds
+    setTimeout(() => setRecentlyChanged({}), 3000);
   };
 
   // Add form change handler
@@ -151,23 +179,29 @@ const AdminStudents: React.FC = () => {
     }
   };
 
-  // Add save student function
+  // Add save student function with localStorage persistence
   const handleSaveStudent = () => {
     if (selectedStudent) {
-      // Update existing student
-      const updatedStudents = studentsData.map(s => 
-        s.id === selectedStudent.id ? selectedStudent : s
+      // Update existing student in localStorage
+      const updatedStudents = updateCollectionItem<Student>(
+        'students', 
+        selectedStudent.id, 
+        selectedStudent, 
+        students
       );
+      
       setStudentsData(updatedStudents);
       setRecentlyChanged({ [selectedStudent.id]: 'updated' });
     } else {
-      // Add new student - using our custom generator instead of uuidv4
+      // Add new student with generated ID
       const newStudentWithId = {
         ...newStudent,
         id: `st-${generateUUID()}`,
         avatar: `https://img.heroui.chat/image/avatar?w=200&h=200&u=${Math.floor(Math.random() * 100)}`
-      };
-      setStudentsData([newStudentWithId, ...studentsData]);
+      } as Student;
+      
+      const updatedStudents = addCollectionItem('students', newStudentWithId, students);
+      setStudentsData(updatedStudents);
       setRecentlyChanged({ [newStudentWithId.id]: 'added' });
     }
     
@@ -183,6 +217,53 @@ const AdminStudents: React.FC = () => {
     
     // Clear change indicator after 3 seconds
     setTimeout(() => setRecentlyChanged({}), 3000);
+  };
+
+  // Fix the handleAddGrade function that was causing issues
+  const handleAddGrade = (studentId: string) => {
+    if (!newGrade.subjectId) {
+      addToast({
+        title: "Ошибка",
+        description: "Выберите предмет для оценки",
+        color: "danger",
+      });
+      return;
+    }
+    
+    const gradeId = `g-${generateUUID()}`;
+    const now = new Date();
+    const formattedDate = now.toISOString().split('T')[0];
+    
+    // Create new grade
+    const grade = {
+      id: gradeId,
+      studentId: studentId,
+      subjectId: newGrade.subjectId,
+      grade: newGrade.grade,
+      comment: newGrade.comment,
+      date: formattedDate,
+      teacherId: 't1' // Default teacher for admin added grades
+    };
+    
+    // Get existing grades from localStorage
+    const existingGrades = getFromLocalStorage('grades', gradeEntries);
+    const updatedGrades = [...existingGrades, grade];
+    
+    // Save to localStorage
+    saveToLocalStorage('grades', updatedGrades);
+    
+    // Reset form
+    setNewGrade({
+      subjectId: '',
+      grade: 5, // Make sure this is initialized correctly
+      comment: ''
+    });
+    
+    addToast({
+      title: "Оценка добавлена",
+      description: "Оценка успешно добавлена студенту",
+      color: "success",
+    });
   };
 
   return (
@@ -438,10 +519,49 @@ const AdminStudents: React.FC = () => {
                             </TableBody>
                           </Table>
                           
-                          <div className="flex justify-end mt-4">
-                            <Button color="primary" size="sm" endContent={<Icon icon="lucide:plus" />}>
-                              Add Grade
-                            </Button>
+                          {/* Add form for new grade */}
+                          <div className="mt-4 p-4 border border-dashed rounded-lg border-default-300">
+                            <h4 className="font-medium mb-3">Add New Grade</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <Select
+                                label="Предмет"
+                                placeholder="Выберите предмет"
+                                selectedKeys={newGrade.subjectId ? [newGrade.subjectId] : []}
+                                onChange={(e) => setNewGrade({...newGrade, subjectId: e.target.value})}
+                              >
+                                {subjects?.map(subject => (
+                                  <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
+                                ))}
+                              </Select>
+                              
+                              <Select
+                                label="Оценка"
+                                selectedKeys={[String(newGrade.grade)]}
+                                onChange={(e) => setNewGrade({...newGrade, grade: Number(e.target.value)})}
+                              >
+                                <SelectItem key="5" value="5">5 - Отлично</SelectItem>
+                                <SelectItem key="4" value="4">4 - Хорошо</SelectItem>
+                                <SelectItem key="3" value="3">3 - Удовлетворительно</SelectItem>
+                                <SelectItem key="2" value="2">2 - Неудовлетворительно</SelectItem>
+                                <SelectItem key="1" value="1">1 - Неудовлетворительно</SelectItem>
+                              </Select>
+                              
+                              <Input
+                                label="Комментарий"
+                                placeholder="Добавьте комментарий к оценке"
+                                value={newGrade.comment}
+                                onValueChange={(value) => setNewGrade({...newGrade, comment: value})}
+                                className="md:col-span-2"
+                              />
+                              
+                              <Button 
+                                color="primary" 
+                                onPress={() => handleAddGrade(selectedStudent.id)}
+                                className="md:col-span-2"
+                              >
+                                Добавить оценку
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </Tab>

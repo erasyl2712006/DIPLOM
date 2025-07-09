@@ -19,27 +19,53 @@ import {
 import { Icon } from '@iconify/react';
 import { students, getGroupById } from '../../data/mock-data';
 import { Student } from '../../data/mock-data';
+import { 
+  getFromLocalStorage, 
+  saveToLocalStorage, 
+  updateCollectionItem 
+} from '../../data/local-storage';
+import { useAuth } from '../../contexts/auth-context';
 
 const StudentProfile: React.FC = () => {
-  // Using static student id for now
-  const studentId = 'st1';
-  const student = students.find(s => s.id === studentId);
-  const group = student ? getGroupById(student.groupId) : null;
+  const { user } = useAuth();
   
+  // Use the authenticated user's ID instead of static ID
+  const studentId = user?.id || 'st1';
+  
+  // Initialize student data from localStorage
+  const [studentData, setStudentData] = React.useState<Student | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [editingProfile, setEditingProfile] = React.useState<Student | null>(null);
   
-  // Fix edit profile functionality
-  const handleEditProfile = () => {
+  React.useEffect(() => {
+    const savedStudents = getFromLocalStorage<Student[]>('students', students);
+    const student = savedStudents.find(s => s.id === studentId);
     if (student) {
-      setEditingProfile({...student});
+      setStudentData(student);
+    }
+  }, [studentId]);
+  
+  // Fix edit profile functionality with localStorage persistence
+  const handleEditProfile = () => {
+    if (studentData) {
+      setEditingProfile({...studentData});
       onOpen();
     }
   };
   
   const handleSaveProfile = () => {
-    // In a real app, this would update the backend
-    console.log("Saving profile:", editingProfile);
+    if (!editingProfile) return;
+    
+    // Update in localStorage
+    const updatedStudents = updateCollectionItem<Student>(
+      'students', 
+      editingProfile.id, 
+      editingProfile, 
+      students
+    );
+    
+    // Update local state
+    setStudentData(editingProfile);
     onOpenChange(false);
     
     addToast({
@@ -48,7 +74,7 @@ const StudentProfile: React.FC = () => {
       color: "success",
     });
   };
-
+  
   // Handle adding additional information
   const handleAddInformation = () => {
     // In a real app, this would open a form to add additional information
@@ -73,7 +99,7 @@ const StudentProfile: React.FC = () => {
     });
   };
 
-  if (!student || !group) return null;
+  if (!studentData) return null;
 
   return (
     <div className="w-full">
@@ -103,12 +129,12 @@ const StudentProfile: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex flex-col items-center">
                 <Avatar 
-                  src={student.avatar} 
+                  src={studentData?.avatar} 
                   className="w-32 h-32 text-large"
                   isBordered
                 />
                 <div className="mt-4 text-center">
-                  <h3 className="text-xl font-semibold">{student.name}</h3>
+                  <h3 className="text-xl font-semibold">{studentData?.name}</h3>
                   <p className="text-default-500">Студент</p>
                 </div>
               </div>
@@ -117,19 +143,19 @@ const StudentProfile: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-default-500 text-sm mb-1">Email</p>
-                    <p className="font-medium">{student.email}</p>
+                    <p className="font-medium">{studentData?.email}</p>
                   </div>
                   <div>
                     <p className="text-default-500 text-sm mb-1">Телефон</p>
-                    <p className="font-medium">{student.phone || "Не указан"}</p>
+                    <p className="font-medium">{studentData?.phone || "Не указан"}</p>
                   </div>
                   <div>
                     <p className="text-default-500 text-sm mb-1">Дата рождения</p>
-                    <p className="font-medium">{student.dateOfBirth || "Не указан"}</p>
+                    <p className="font-medium">{studentData?.dateOfBirth || "Не указан"}</p>
                   </div>
                   <div>
                     <p className="text-default-500 text-sm mb-1">Адрес</p>
-                    <p className="font-medium">{student.address || "Не указан"}</p>
+                    <p className="font-medium">{studentData?.address || "Не указан"}</p>
                   </div>
                 </div>
               </div>
@@ -147,19 +173,19 @@ const StudentProfile: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-default-500 text-sm mb-1">Студентский ID</p>
-                <p className="font-medium">{student.id}</p>
+                <p className="font-medium">{studentData?.id}</p>
               </div>
               <div>
                 <p className="text-default-500 text-sm mb-1">Группа</p>
-                <p className="font-medium">{group.name}</p>
+                <p className="font-medium">{studentData?.group?.name}</p>
               </div>
               <div>
                 <p className="text-default-500 text-sm mb-1">Год</p>
-                <p className="font-medium">{group.year}</p>
+                <p className="font-medium">{studentData?.group?.year}</p>
               </div>
               <div>
                 <p className="text-default-500 text-sm mb-1">Специализация</p>
-                <p className="font-medium">{group.specialization}</p>
+                <p className="font-medium">{studentData?.group?.specialization}</p>
               </div>
               <div>
                 <p className="text-default-500 text-sm mb-1">Статус</p>
@@ -245,7 +271,7 @@ const StudentProfile: React.FC = () => {
                 )}
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
+                <Button color="danger" variant="light" onPress={onOpenChange}>
                   Отмена
                 </Button>
                 <Button color="primary" onPress={handleSaveProfile}>

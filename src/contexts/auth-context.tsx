@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Updated login function to properly handle role-based login
+  // Enhanced login function with better role detection
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {

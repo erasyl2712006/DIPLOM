@@ -8,6 +8,7 @@ import {
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { students, teachers, groups, subjects } from '../../data/mock-data';
+import { getFromLocalStorage } from '../../data/local-storage';
 
 const AdminDashboard: React.FC = () => {
   // Get current date for the greeting
@@ -21,6 +22,21 @@ const AdminDashboard: React.FC = () => {
   } else if (hours >= 18) {
     greeting = 'Добрый вечер';
   }
+
+  // Add state for dynamic counts
+  const [studentCount, setStudentCount] = React.useState(students.length);
+  const [teacherCount, setTeacherCount] = React.useState(teachers.length);
+  const [groupCount, setGroupCount] = React.useState(groups.length);
+  const [subjectCount, setSubjectCount] = React.useState(subjects.length);
+  
+  // Load current counts from localStorage on component mount
+  React.useEffect(() => {
+    const savedStudents = getFromLocalStorage<typeof students>('students', students);
+    const savedTeachers = getFromLocalStorage<typeof teachers>('teachers', teachers);
+    
+    setStudentCount(savedStudents.length);
+    setTeacherCount(savedTeachers.length);
+  }, []);
 
   return (
     <div className="w-full">
@@ -40,7 +56,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-default-500">Всего студентов</p>
-              <h3 className="text-2xl font-bold">{students.length}</h3>
+              <h3 className="text-2xl font-bold">{studentCount}</h3>
             </div>
           </CardBody>
         </Card>
@@ -52,7 +68,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-default-500">Всего учителей</p>
-              <h3 className="text-2xl font-bold">{teachers.length}</h3>
+              <h3 className="text-2xl font-bold">{teacherCount}</h3>
             </div>
           </CardBody>
         </Card>
@@ -64,7 +80,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-default-500">Группы студентов</p>
-              <h3 className="text-2xl font-bold">{groups.length}</h3>
+              <h3 className="text-2xl font-bold">{groupCount}</h3>
             </div>
           </CardBody>
         </Card>
@@ -76,7 +92,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-default-500">Всего предметов</p>
-              <h3 className="text-2xl font-bold">{subjects.length}</h3>
+              <h3 className="text-2xl font-bold">{subjectCount}</h3>
             </div>
           </CardBody>
         </Card>

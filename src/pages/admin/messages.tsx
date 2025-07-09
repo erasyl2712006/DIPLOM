@@ -33,13 +33,24 @@ import {
   Select,
   SelectItem
 } from '@heroui/react';
+import { 
+  getFromLocalStorage, 
+  saveToLocalStorage 
+} from '../../data/local-storage';
 
 const AdminMessages: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [newMessage, setNewMessage] = React.useState<string>("");
+  const [messagesData, setMessagesData] = React.useState(messages);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  
+  // Load messages from localStorage on component mount
+  React.useEffect(() => {
+    const savedMessages = getFromLocalStorage<typeof messages>('messages', messages);
+    setMessagesData(savedMessages);
+  }, []);
   
   // Combine students and teachers for user list
   const allUsers = React.useMemo(() => {
@@ -78,13 +89,13 @@ const AdminMessages: React.FC = () => {
   const conversationMessages = React.useMemo(() => {
     if (!selectedConversation) return [];
     
-    return messages
+    return messagesData
       .filter(msg => 
         (msg.senderId === '1' && msg.receiverId === selectedConversation) || 
         (msg.senderId === selectedConversation && msg.receiverId === '1')
       )
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }, [selectedConversation]);
+  }, [selectedConversation, messagesData]);
   
   // Get selected user
   const selectedUser = React.useMemo(() => {
@@ -104,8 +115,29 @@ const AdminMessages: React.FC = () => {
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
     
-    // In a real app, this would send the message to the API
-    console.log('Sending message:', newMessage);
+    // Create a new message object
+    const newMessageObj = {
+      id: `msg-${Date.now()}`,
+      senderId: '1',  // Admin ID
+      receiverId: selectedConversation,
+      content: newMessage,
+      timestamp: new Date().toISOString(),
+      isRead: true
+    };
+    
+    // Update state with the new message
+    const updatedMessages = [...messagesData, newMessageObj];
+    setMessagesData(updatedMessages);
+    
+    // Save to localStorage
+    saveToLocalStorage('messages', updatedMessages);
+    
+    // Show success toast
+    addToast({
+      title: "Сообщение отправлено",
+      description: "Ваше сообщение успешно отправлено",
+      color: "success",
+    });
     
     // Clear input
     setNewMessage('');

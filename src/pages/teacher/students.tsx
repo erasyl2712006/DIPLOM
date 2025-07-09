@@ -35,6 +35,10 @@ import {
   getStudentAttendanceSummary
 } from '../../data/mock-data';
 import { Student } from '../../data/mock-data';
+import { 
+  getFromLocalStorage,
+  saveToLocalStorage
+} from '../../data/local-storage';
 
 const TeacherStudents: React.FC = () => {
   const [searchQuery, setSearchQuery] = React.useState<string>("");
@@ -48,9 +52,18 @@ const TeacherStudents: React.FC = () => {
     return Array.from(new Set(students.map(student => student.groupId)));
   }, []);
   
+  // Load students from localStorage on component mount
+  React.useEffect(() => {
+    const savedStudents = getFromLocalStorage<typeof students>('students', students);
+    setStudentsData(savedStudents);
+  }, []);
+  
+  // Add state to track loaded student data
+  const [studentsData, setStudentsData] = React.useState(students);
+  
   // Filter students
   const filteredStudents = React.useMemo(() => {
-    let filtered = [...students];
+    let filtered = [...studentsData];
     
     // Filter by group
     if (selectedGroup !== 'all') {
@@ -68,7 +81,7 @@ const TeacherStudents: React.FC = () => {
     }
     
     return filtered;
-  }, [selectedGroup, searchQuery]);
+  }, [selectedGroup, searchQuery, studentsData]);
   
   // Handle student selection
   const handleStudentSelect = (student: Student) => {
@@ -219,13 +232,84 @@ const TeacherStudents: React.FC = () => {
                       aria-label="Student details tabs"
                     >
                       <Tab key="profile" title="Профиль">
-                        {/* Profile tab content */}
+                        <div className="space-y-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <Avatar src={selectedStudent.avatar} name={selectedStudent.name} size="lg" />
+                            <div className="flex-1">
+                              <h3 className="text-xl font-semibold">{selectedStudent.name}</h3>
+                              <p className="text-default-500">{selectedStudent.email}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-default-500 text-sm mb-1">Группа</p>
+                              <p className="font-medium">{getGroupById(selectedStudent.groupId)?.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-default-500 text-sm mb-1">Телефон</p>
+                              <p className="font-medium">{selectedStudent.phone || "Не указан"}</p>
+                            </div>
+                            <div>
+                              <p className="text-default-500 text-sm mb-1">Дата рождения</p>
+                              <p className="font-medium">{selectedStudent.dateOfBirth || "Не указана"}</p>
+                            </div>
+                            <div>
+                              <p className="text-default-500 text-sm mb-1">Адрес</p>
+                              <p className="font-medium">{selectedStudent.address || "Не указан"}</p>
+                            </div>
+                          </div>
+                        </div>
                       </Tab>
                       <Tab key="grades" title="Оценки">
-                        {/* Grades tab content */}
+                        <div className="space-y-4 py-4">
+                          <h3 className="text-lg font-semibold">Успеваемость</h3>
+                          
+                          <Table removeWrapper aria-label="Student grades">
+                            <TableHeader>
+                              <TableColumn>ПРЕДМЕТ</TableColumn>
+                              <TableColumn>ОЦЕНКА</TableColumn>
+                              <TableColumn>ДАТА</TableColumn>
+                              <TableColumn>КОММЕНТАРИЙ</TableColumn>
+                            </TableHeader>
+                            <TableBody>
+                              {getStudentGrades(selectedStudent.id).map((grade) => {
+                                const subject = getSubjectById(grade.subjectId);
+                                
+                                return (
+                                  <TableRow key={grade.id}>
+                                    <TableCell>{subject?.name}</TableCell>
+                                    <TableCell>
+                                      <Chip 
+                                        color={
+                                          grade.grade >= 5 ? "success" : 
+                                          grade.grade >= 4 ? "primary" : 
+                                          grade.grade >= 3 ? "warning" : 
+                                          "danger"
+                                        }
+                                        variant="flat"
+                                      >
+                                        {grade.grade}
+                                      </Chip>
+                                    </TableCell>
+                                    <TableCell>{grade.date}</TableCell>
+                                    <TableCell>{grade.comment}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </Tab>
                       <Tab key="attendance" title="Посещаемость">
-                        {/* Attendance tab content */}
+                        <div className="space-y-4 py-4">
+                          <h3 className="text-lg font-semibold">Статистика посещаемости</h3>
+                          
+                          <div className="p-4">
+                            {/* Implement attendance data display here */}
+                            <p>Информация о посещаемости студента будет доступна в следующем обновлении.</p>
+                          </div>
+                        </div>
                       </Tab>
                     </Tabs>
                   </div>

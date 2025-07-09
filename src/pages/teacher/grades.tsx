@@ -35,12 +35,27 @@ import {
   getStudentById,
   getGroupById
 } from '../../data/mock-data';
+import { 
+  getFromLocalStorage, 
+  saveToLocalStorage, 
+  updateCollectionItem, 
+  addCollectionItem, 
+  removeCollectionItem 
+} from '../../data/local-storage';
 
 // Add a custom UUID generator function
 const generateUUID = () => {
   return Math.random().toString(36).substring(2, 9) + 
     Date.now().toString(36);
 };
+
+interface EditGradeData {
+  id: string;
+  studentId: string;
+  subjectId: string;
+  grade: number;
+  comment: string;
+}
 
 const TeacherGrades: React.FC = () => {
   const [selectedSubject, setSelectedSubject] = React.useState<string>("all");
@@ -49,6 +64,12 @@ const TeacherGrades: React.FC = () => {
   const [editingGrade, setEditingGrade] = React.useState<EditGradeData | null>(null);
   const [gradesData, setGradesData] = React.useState(gradeEntries);
   const [recentlyChanged, setRecentlyChanged] = React.useState<string[]>([]);
+  
+  // Initialize grades data from localStorage
+  React.useEffect(() => {
+    const savedGrades = getFromLocalStorage<typeof gradeEntries>('grades', gradeEntries);
+    setGradesData(savedGrades);
+  }, []);
   
   // Filter grades based on selected subject and search query
   const filteredGrades = React.useMemo(() => {
@@ -81,7 +102,7 @@ const TeacherGrades: React.FC = () => {
   
   // Start editing a grade
   const handleEditGrade = (gradeId: string) => {
-    const grade = gradeEntries.find(g => g.id === gradeId);
+    const grade = gradesData.find(g => g.id === gradeId);
     if (grade) {
       setEditingGrade({
         id: grade.id,
@@ -107,7 +128,7 @@ const TeacherGrades: React.FC = () => {
     onOpen();
   };
   
-  // Save edited grade
+  // Save edited grade with localStorage persistence
   const handleSaveGrade = () => {
     if (!editingGrade) return;
     
@@ -115,7 +136,7 @@ const TeacherGrades: React.FC = () => {
     const formattedDate = now.toISOString().split('T')[0];
     
     if (editingGrade.id.startsWith('new-')) {
-      // Creating a new grade - using generateUUID instead of uuidv4
+      // Creating a new grade
       const newGrade = {
         ...editingGrade,
         id: `g-${generateUUID()}`,
@@ -123,13 +144,22 @@ const TeacherGrades: React.FC = () => {
         teacherId: 't1'
       };
       
-      setGradesData([newGrade, ...gradesData]);
+      // Update localStorage and state
+      const updatedGrades = addCollectionItem('grades', newGrade, gradeEntries);
+      setGradesData(updatedGrades);
       setRecentlyChanged([newGrade.id]);
     } else {
       // Updating existing grade
-      const updatedGrades = gradesData.map(g => 
-        g.id === editingGrade.id ? {...editingGrade, date: formattedDate} : g
+      const updatedGrade = {...editingGrade, date: formattedDate};
+      
+      // Update localStorage and state
+      const updatedGrades = updateCollectionItem(
+        'grades', 
+        editingGrade.id, 
+        updatedGrade, 
+        gradeEntries
       );
+      
       setGradesData(updatedGrades);
       setRecentlyChanged([editingGrade.id]);
     }
@@ -150,7 +180,8 @@ const TeacherGrades: React.FC = () => {
     setRecentlyChanged([gradeId]);
     
     setTimeout(() => {
-      const updatedGrades = gradesData.filter(g => g.id !== gradeId);
+      // Update localStorage and state
+      const updatedGrades = removeCollectionItem('grades', gradeId, gradeEntries);
       setGradesData(updatedGrades);
       
       addToast({

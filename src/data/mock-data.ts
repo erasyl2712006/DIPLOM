@@ -452,17 +452,8 @@ export const getTeacherById = (teacherId: string) => {
 };
 
 export const getDayName = (dayNumber: number): string => {
-  const days = [
-    'Воскресенье',
-    'Понедельник',
-    'Вторник',
-    'Среда',
-    'Четверг',
-    'Пятница',
-    'Суббота'
-  ];
-  
-  return days[dayNumber] || '';
+  const days = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+  return days[dayNumber] || "";
 };
 
 export const getGroupById = (groupId: string) => {

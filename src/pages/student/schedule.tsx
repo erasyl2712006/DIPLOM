@@ -12,7 +12,7 @@ import {
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { 
-  getStudentSchedule, 
+  getStudentSchedule,
   getDayName, 
   getSubjectById,
   getTeacherById

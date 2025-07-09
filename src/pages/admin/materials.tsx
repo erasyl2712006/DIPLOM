@@ -35,6 +35,13 @@ import {
   getTeacherById
 } from '../../data/mock-data';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  getFromLocalStorage, 
+  saveToLocalStorage, 
+  updateCollectionItem, 
+  addCollectionItem, 
+  removeCollectionItem 
+} from '../../data/local-storage';
 
 const AdminMaterials: React.FC = () => {
   const [searchQuery, setSearchQuery] = React.useState<string>("");
@@ -101,31 +108,24 @@ const AdminMaterials: React.FC = () => {
     }
   };
 
+  // Initialize materials data from localStorage
+  React.useEffect(() => {
+    const savedMaterials = getFromLocalStorage<typeof materials>('materials', materials);
+    setMaterialsData(savedMaterials);
+  }, []);
+
   // Add handlers for CRUD operations
   const handleAddMaterial = () => {
+    setSelectedMaterial(null);
     onOpen();
   };
   
-  const handleDownloadMaterial = (materialId: string) => {
-    // In a real app, this would download the material
-    console.log("Download material:", materialId);
-    
-    addToast({
-      title: "Загрузка началась",
-      description: "Материал скачивается",
-      color: "primary",
-    });
-  };
-  
   const handleEditMaterial = (materialId: string) => {
-    // In a real app, this would open a form to edit the material
-    console.log("Edit material:", materialId);
-    
-    addToast({
-      title: "Редактирование материала",
-      description: "Форма редактирования материала открыта",
-      color: "primary",
-    });
+    const material = materialsData.find(m => m.id === materialId);
+    if (material) {
+      setSelectedMaterial({...material});
+      onOpen();
+    }
   };
   
   const handleDeleteMaterial = (materialId: string) => {
@@ -133,7 +133,8 @@ const AdminMaterials: React.FC = () => {
     
     // Delay actual removal to show animation
     setTimeout(() => {
-      const updatedMaterials = materialsData.filter(m => m.id !== materialId);
+      // Update localStorage and state
+      const updatedMaterials = removeCollectionItem('materials', materialId, materials);
       setMaterialsData(updatedMaterials);
       
       addToast({
@@ -152,31 +153,54 @@ const AdminMaterials: React.FC = () => {
       Date.now().toString(36);
   };
   
+  // Add handleSaveMaterial with persistence
   const handleSaveMaterial = () => {
     // In a real app, this would save to the backend
     const currentDate = new Date().toISOString().split('T')[0];
     
     if (selectedMaterial) {
-      // Update existing material
-      const updatedMaterials = materialsData.map(m => 
-        m.id === selectedMaterial.id ? {...selectedMaterial, uploadDate: currentDate} : m
+      // Update existing material in localStorage
+      const updatedMaterial = {...selectedMaterial, uploadDate: currentDate};
+      const updatedMaterials = updateCollectionItem(
+        'materials', 
+        selectedMaterial.id, 
+        updatedMaterial, 
+        materials
       );
+      
       setMaterialsData(updatedMaterials);
       setRecentAction({id: selectedMaterial.id, type: 'updated'});
     } else {
-      // Create new material with random ID - using our custom generator
+      // Create new material with random ID
+      const titleInput = document.querySelector<HTMLInputElement>('input[placeholder="Введите название материала"]');
+      const descriptionInput = document.querySelector<HTMLTextAreaElement>('textarea[placeholder="Введите описание материала"]');
+      const typeSelect = document.querySelector<HTMLSelectElement>('select[aria-label="Тип материала"]');
+      const subjectSelect = document.querySelector<HTMLSelectElement>('select[aria-label="Предмет"]');
+      
+      if (!titleInput || !subjectSelect) {
+        addToast({
+          title: "Ошибка",
+          description: "Пожалуйста, заполните все обязательные поля",
+          color: "danger",
+        });
+        return;
+      }
+      
       const newMaterial = {
         id: `m-${generateUUID()}`,
-        title: document.querySelector<HTMLInputElement>('input[placeholder="Введите название материала"]')?.value || 'New Material',
-        description: document.querySelector<HTMLTextAreaElement>('textarea[placeholder="Введите описание материала"]')?.value,
-        type: document.querySelector<HTMLSelectElement>('select[aria-label="Тип материала"]')?.value || 'document',
-        subjectId: document.querySelector<HTMLSelectElement>('select[aria-label="Предмет"]')?.value || subjects[0].id,
+        title: titleInput.value || 'New Material',
+        description: descriptionInput?.value,
+        type: typeSelect?.value || 'document',
+        subjectId: subjectSelect.value || subjects[0].id,
         groupIds: [],
         uploadDate: currentDate,
         uploadedBy: 'admin',
         fileUrl: ''
       };
-      setMaterialsData([newMaterial, ...materialsData]);
+      
+      // Update localStorage and state
+      const updatedMaterials = addCollectionItem('materials', newMaterial, materials);
+      setMaterialsData(updatedMaterials);
       setRecentAction({id: newMaterial.id, type: 'added'});
     }
     
@@ -184,7 +208,9 @@ const AdminMaterials: React.FC = () => {
     
     addToast({
       title: "Материал сохранен",
-      description: "Новый материал добавлен в систему",
+      description: selectedMaterial ? 
+        "Материал успешно обновлен" : 
+        "Новый материал добавлен в систему",
       color: "success",
     });
     
@@ -426,7 +452,7 @@ const AdminMaterials: React.FC = () => {
                   Отмена
                 </Button>
                 <Button color="primary" onPress={handleSaveMaterial}>
-                  Сохранить
+                  {selectedMaterial ? "Сохранить" : "Добавить"}
                 </Button>
               </ModalFooter>
             </>

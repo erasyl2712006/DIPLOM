@@ -36,6 +36,12 @@ import {
   scheduleEntries
 } from '../../data/mock-data';
 import { motion } from 'framer-motion';
+import { 
+  getFromLocalStorage, 
+  saveToLocalStorage, 
+  updateCollectionItem, 
+  addCollectionItem 
+} from '../../data/local-storage';
 
 const TeacherAttendance: React.FC = () => {
   const [selectedDate, setSelectedDate] = React.useState<string>(new Date().toISOString().split('T')[0]);
@@ -57,11 +63,22 @@ const TeacherAttendance: React.FC = () => {
     return students.filter(student => student.groupId === selectedEntry.groupId);
   }, [selectedClass]);
   
-  // Get attendance records for the selected class and date
+  // Add state for attendance records
+  const [attendanceData, setAttendanceData] = React.useState(attendanceRecords);
+  const [markAllStatus, setMarkAllStatus] = React.useState('present');
+  const [markAllNote, setMarkAllNote] = React.useState('');
+  
+  // Load attendance data from localStorage
+  React.useEffect(() => {
+    const savedAttendance = getFromLocalStorage<typeof attendanceRecords>('attendance', attendanceRecords);
+    setAttendanceData(savedAttendance);
+  }, []);
+  
+  // Get attendance records for the selected class and date with localStorage data
   const classAttendance = React.useMemo(() => {
     if (!selectedClass || !selectedDate) return {};
     
-    const records = attendanceRecords.filter(
+    const records = attendanceData.filter(
       record => record.scheduleEntryId === selectedClass && record.date === selectedDate
     );
     
@@ -71,7 +88,7 @@ const TeacherAttendance: React.FC = () => {
     });
     
     return attendanceMap;
-  }, [selectedClass, selectedDate]);
+  }, [selectedClass, selectedDate, attendanceData]);
   
   // Get status options
   const statusOptions = [
@@ -81,19 +98,50 @@ const TeacherAttendance: React.FC = () => {
     { key: 'excused', label: 'Уваж. причина', color: 'primary' }
   ];
   
-  // Handle status change
+  // Handle status change with localStorage persistence
   const handleStatusChange = (studentId: string, status: string) => {
-    // Save the previous status for the student to allow for visual comparison
+    // Save the previous status for the student
     const previousStatus = classAttendance[studentId] || 'present';
     
-    // In a real app, this would update the backend
-    console.log(`Changing status for student ${studentId} from ${previousStatus} to ${status}`);
+    // Create a record ID for consistent updates
+    const recordId = `att-${selectedClass}-${studentId}-${selectedDate}`;
     
-    // Update the UI immediately for responsiveness
-    const updatedAttendance = {...classAttendance};
-    updatedAttendance[studentId] = status;
+    // Check if record exists
+    const existingRecord = attendanceData.find(
+      r => r.scheduleEntryId === selectedClass && 
+           r.studentId === studentId && 
+           r.date === selectedDate
+    );
     
-    // Simulate the status change with animation
+    if (existingRecord) {
+      // Update existing record
+      const updatedAttendance = updateCollectionItem(
+        'attendance',
+        existingRecord.id,
+        { status },
+        attendanceRecords
+      );
+      setAttendanceData(updatedAttendance);
+    } else {
+      // Create new record
+      const newRecord = {
+        id: recordId,
+        scheduleEntryId: selectedClass,
+        studentId: studentId,
+        date: selectedDate,
+        status: status,
+        notes: ''
+      };
+      
+      const updatedAttendance = addCollectionItem(
+        'attendance',
+        newRecord,
+        attendanceRecords
+      );
+      setAttendanceData(updatedAttendance);
+    }
+    
+    // Animate status change
     const statusCell = document.querySelector(`[data-student-id="${studentId}"]`);
     if (statusCell) {
       statusCell.classList.add('bg-primary-50');
@@ -109,12 +157,56 @@ const TeacherAttendance: React.FC = () => {
     });
   };
 
+  // Mark attendance for all students with localStorage persistence
   const handleMarkAllAttendance = () => {
+    if (!selectedClass || !selectedDate || !classStudents.length) {
+      onClose();
+      return;
+    }
+    
+    // Create or update attendance records for all students
+    const updatedRecords = [...attendanceData];
+    
+    classStudents.forEach(student => {
+      const existingRecordIndex = updatedRecords.findIndex(
+        r => r.scheduleEntryId === selectedClass && 
+             r.studentId === student.id && 
+             r.date === selectedDate
+      );
+      
+      if (existingRecordIndex >= 0) {
+        // Update existing record
+        updatedRecords[existingRecordIndex] = {
+          ...updatedRecords[existingRecordIndex],
+          status: markAllStatus,
+          notes: markAllNote || updatedRecords[existingRecordIndex].notes
+        };
+      } else {
+        // Create new record
+        updatedRecords.push({
+          id: `att-${selectedClass}-${student.id}-${selectedDate}`,
+          scheduleEntryId: selectedClass,
+          studentId: student.id,
+          date: selectedDate,
+          status: markAllStatus,
+          notes: markAllNote
+        });
+      }
+    });
+    
+    // Save to localStorage and update state
+    saveToLocalStorage('attendance', updatedRecords);
+    setAttendanceData(updatedRecords);
+    
     onClose();
     
     addToast({
       title: "Посещаемость обновлена",
-      description: "Статус посещаемости для всех студентов обновлен",
+      description: `Статус посещаемости для всех студентов установлен: ${
+        markAllStatus === 'present' ? 'Присутствует' :
+        markAllStatus === 'absent' ? 'Отсутствует' :
+        markAllStatus === 'late' ? 'Опоздал' : 'Уваж. причина'
+      }`,
       color: "success",
     });
   };
@@ -241,10 +333,11 @@ const TeacherAttendance: React.FC = () => {
                   label="Статус для всех студентов"
                   placeholder="Выберите статус"
                   labelPlacement="outside"
-                  defaultSelectedKeys={["present"]}
+                  selectedKeys={[markAllStatus]}
+                  onChange={(e) => setMarkAllStatus(e.target.value)}
                 >
                   {statusOptions.map((option) => (
-                    <SelectItem key={option.key}>
+                    <SelectItem key={option.key} value={option.key}>
                       {option.label}
                     </SelectItem>
                   ))}
@@ -254,6 +347,8 @@ const TeacherAttendance: React.FC = () => {
                   label="Примечание (необязательно)"
                   placeholder="Введите примечание, если необходимо"
                   labelPlacement="outside"
+                  value={markAllNote}
+                  onValueChange={setMarkAllNote}
                 />
               </ModalBody>
               <ModalFooter>
